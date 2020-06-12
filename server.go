@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+  "crypto/sha256"
+  "time"
 
 	"github.com/gorilla/mux"
 )
@@ -38,10 +40,18 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+  hash := sha256.New()
+  hash.Write([]byte("Test String\n"))
+  fmt.Printf("%x\n", hash.Sum(nil))
+
+  fmt.Printf("%d\n", time.Now().Unix())
   db := loadDatabase()
 
+  //createTables(db)
+  //populateSomeData(db)
+
   rows, err := db.Query("SELECT * FROM roster;")
-  
+
   if err != nil {
     log.Fatal(err.Error())
   }

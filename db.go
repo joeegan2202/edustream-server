@@ -28,10 +28,11 @@ func loadDatabase() *sql.DB {
 }
 
 func createTables(db *sql.DB) {
-  db.Exec("CREATE TABLE cameras ( id INT NOT NULL, address VARCHAR(255) NOT NULL, room VARCHAR(20) NOT NULL, framerate INT, bitrate VARCHAR(10), hlsTime INT, hlsWrap INT, codec VARCHAR(20), PRIMARY KEY (id) );")
-  db.Exec("CREATE TABLE people ( id INT NOT NULL, uname VARCHAR(20) NOT NULL, fname VARCHAR(20) NOT NULL, lname VARCHAR(20) NOT NULL, role CHAR NOT NULL, PRIMARY KEY(id) );")
-  db.Exec("CREATE TABLE classes ( id INT NOT NULL, name VARCHAR(40) NOT NULL, room VARCHAR(20) NOT NULL, stime INT NOT NULL, etime INT NOT NULL, PRIMARY KEY(id) );")
-  db.Exec("CREATE TABLE roster ( pid INT NOT NULL, cid INT NOT NULL, FOREIGN KEY (pid) REFERENCES people(id), FOREIGN KEY (cid) REFERENCES classes(id) );")
+  db.Exec("CREATE TABLE cameras ( id CHAR(64) NOT NULL, address VARCHAR(255) NOT NULL, room VARCHAR(20) NOT NULL, framerate INT, bitrate VARCHAR(10), hlsTime INT, hlsWrap INT, codec VARCHAR(20), PRIMARY KEY (id) );")
+  db.Exec("CREATE TABLE people ( id CHAR(64) NOT NULL, uname VARCHAR(20) NOT NULL, fname VARCHAR(20) NOT NULL, lname VARCHAR(20) NOT NULL, role CHAR NOT NULL, PRIMARY KEY(id) );")
+  db.Exec("CREATE TABLE classes ( id CHAR(64) NOT NULL, name VARCHAR(40) NOT NULL, room VARCHAR(20) NOT NULL, stime INT NOT NULL, etime INT NOT NULL, PRIMARY KEY(id) );")
+  db.Exec("CREATE TABLE roster ( pid CHAR(64) NOT NULL, cid CHAR(64) NOT NULL, FOREIGN KEY (pid) REFERENCES people(id), FOREIGN KEY (cid) REFERENCES classes(id) );")
+  db.Exec("CREATE TABLE sessions ( id CHAR(64) NOT NULL, time INT NOT NULL, uname VARCHAR(20) NOT NULL, PRIMARY KEY (id) );")
 }
 
 func populateSomeData(db *sql.DB) {
