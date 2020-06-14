@@ -7,39 +7,37 @@ import (
   "log"
 )
 
-type Stream struct {
-  command string
-  framerate uint8
-  bitrate string
-  hlsTime uint8
-  hlsWrap uint8
-  codec string
-  done chan bool
-  err error
-}
-
-type Record struct {
-  command string
-  framerate uint8
-  bitrate string
-  codec string
-  done chan bool
-  err error
-}
+var (
+  cameras []*Camera
+)
 
 type Camera struct {
-  stream *Stream
-  record *Record
+  streamCommand string
+  streamFramerate uint8
+  streamBitrate string
+  streamHlsTime uint8
+  streamHlsWrap uint8
+  streamCodec string
+  streamDone chan bool
+  streamErr error
+  recordCommand string
+  recordFramerate uint8
+  recordBitrate string
+  recordCodec string
+  recordDone chan bool
+  recordErr error
+  inputAddress string
+  outputFolder string
 }
 
-func (c *Camera) initiate(inputAddress string, outputFolder string) {
-  c.stream.initiate(inputAddress, outputFolder)
-  c.record.initiate(inputAddress, outputFolder)
+func (c *Camera) initiate() {
+  c.initiateStream()
+  c.initiateRecord()
 }
 
-func (r *Record) initiate(inputAddress string, outputFolder string) {
-  r.command = ""
-  r.done = make(chan bool)
+func (c *Camera) initiateStream() {
+  c.streamCommand = ""
+  c.streamDone = make(chan bool)
   // Change with OS:
   var path []byte
   var err error
@@ -50,34 +48,40 @@ func (r *Record) initiate(inputAddress string, outputFolder string) {
   }
 
   if err == nil {
-    r.command += string(path[0:len(path)-1])
+    c.streamCommand += string(path[0:len(path)-1])
     fmt.Printf("Path found: %s\n", string(path[:]))
   } else {
     log.Fatal(fmt.Sprintf("Could not find ffmpeg binary/executable! Error: %s", err.Error()))
   }
 
   // Put in options:
-  if r.framerate == 0 {
-    r.framerate = 30
+  if c.streamFramerate == 0 {
+    c.streamFramerate = 30
   }
-  if r.bitrate == "" {
-    r.bitrate = "256K"
+  if c.streamBitrate == "" {
+    c.streamBitrate = "256K"
   }
-  if r.codec == "" {
-    r.codec = "copy"
+  if c.streamHlsTime == 0 {
+    c.streamHlsTime = 3
+  }
+  if c.streamHlsWrap == 0 {
+    c.streamHlsWrap = 10
+  }
+  if c.streamCodec == "" {
+    c.streamCodec = "copy"
   }
 
-  cmd := exec.Command(r.command, "-r", fmt.Sprintf("%d", r.framerate), "-i", inputAddress, "-b:v", r.bitrate, "-codec", r.codec, "-y", fmt.Sprintf("%s/record.mp4", outputFolder))
+  cmd := exec.Command(c.streamCommand, "-r", fmt.Sprintf("%d", c.streamFramerate), "-i", c.inputAddress, "-b:v", c.streamBitrate, "-hls_time", fmt.Sprintf("%d", c.streamHlsTime), "-hls_wrap", fmt.Sprintf("%d", c.streamHlsWrap), "-codec", c.streamCodec, fmt.Sprintf("%s/stream.m3u8", c.outputFolder))
   fmt.Println(cmd.String())
   go func() {
     cmd.Run()
-    r.done <- true
+    c.streamDone <- true
   }()
 }
 
-func (s *Stream) initiate(inputAddress string, outputFolder string) {
-  s.command = ""
-  s.done = make(chan bool)
+func (c *Camera) initiateRecord() {
+  c.recordCommand = ""
+  c.recordDone = make(chan bool)
   // Change with OS:
   var path []byte
   var err error
@@ -88,34 +92,27 @@ func (s *Stream) initiate(inputAddress string, outputFolder string) {
   }
 
   if err == nil {
-    s.command += string(path[0:len(path)-1])
+    c.recordCommand += string(path[0:len(path)-1])
     fmt.Printf("Path found: %s\n", string(path[:]))
   } else {
     log.Fatal(fmt.Sprintf("Could not find ffmpeg binary/executable! Error: %s", err.Error()))
   }
 
   // Put in options:
-  if s.framerate == 0 {
-    s.framerate = 30
+  if c.recordFramerate == 0 {
+    c.recordFramerate = 30
   }
-  if s.bitrate == "" {
-    s.bitrate = "256K"
+  if c.recordBitrate == "" {
+    c.recordBitrate = "256K"
   }
-  if s.hlsTime == 0 {
-    s.hlsTime = 3
-  }
-  if s.hlsWrap == 0 {
-    s.hlsWrap = 10
-  }
-  if s.codec == "" {
-    s.codec = "copy"
+  if c.recordCodec == "" {
+    c.recordCodec = "copy"
   }
 
-  cmd := exec.Command(s.command, "-r", fmt.Sprintf("%d", s.framerate), "-i", inputAddress, "-b:v", s.bitrate, "-hls_time", fmt.Sprintf("%d", s.hlsTime), "-hls_wrap", fmt.Sprintf("%d", s.hlsWrap), "-codec", s.codec, fmt.Sprintf("%s/stream.m3u8", outputFolder))
+  cmd := exec.Command(c.recordCommand, "-r", fmt.Sprintf("%d", c.recordFramerate), "-i", c.inputAddress, "-b:v", c.recordBitrate, "-codec", c.recordCodec, "-y", fmt.Sprintf("%s/record.mp4", c.outputFolder))
   fmt.Println(cmd.String())
   go func() {
     cmd.Run()
-    s.done <- true
+    c.recordDone <- true
   }()
 }
-

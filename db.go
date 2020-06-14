@@ -1,15 +1,66 @@
 package main
 
-import "fmt"
-import "database/sql"
-import _ "github.com/go-sql-driver/mysql"
-import "os"
-import "github.com/joho/godotenv"
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"os"
+	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
+)
+
+var (
+  db *sql.DB
+)
+
+func checkSession(id string) (string, error) {
+  rows, err := db.Query("SELECT time, uname FROM sessions WHERE id=?;", id)
+
+  if err != nil {
+    fmt.Println("Error getting first query")
+    return "", err
+  }
+
+  fmt.Printf("Time: %d\n", time.Now().Unix())
+
+  rows.Next()
+
+  var sessionTime int64
+  var uname string
+
+  if err := rows.Scan(&sessionTime, &uname); err != nil {
+    fmt.Println("Error doing the first scan")
+    return "", err
+  }
+
+  fmt.Printf("Session time: %d\n", sessionTime)
+  now := time.Now().Unix()
+  if sessionTime < now - (30*60) {
+    db.Exec("DELETE FROM sessions WHERE id=?;", id)
+    return "", fmt.Errorf("Session: %s, too old! %d seconds too old.", id, now - sessionTime - (30*60))
+  }
+
+  rows.Close()
+
+  row := db.QueryRow("SELECT role FROM people WHERE uname=?;", uname)
+
+  var role string
+
+  err = row.Scan(&role)
+
+  if err != nil {
+    fmt.Println("Error getting uname")
+    return "", err
+  }
+
+  return role, nil
+}
 
 func loadDatabase() *sql.DB {
   if godotenv.Load("credentials.env") != nil {
-    fmt.Println("Database failed to open")
-    return nil
+    log.Fatal("Failed to get credentials while loading database")
   }
 
   uname := os.Getenv("DB_USER")
@@ -20,8 +71,7 @@ func loadDatabase() *sql.DB {
   db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/classroom", uname, pword))
 
   if err != nil {
-    fmt.Println(err)
-    return nil
+    log.Fatal(err.Error())
   }
 
   return db
