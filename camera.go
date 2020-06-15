@@ -1,10 +1,11 @@
 package main
 
 import (
-  "os/exec"
-  "runtime"
-  "fmt"
-  "log"
+	"fmt"
+	"os"
+	"os/exec"
+	"runtime"
+	"syscall"
 )
 
 var (
@@ -12,32 +13,25 @@ var (
 )
 
 type Camera struct {
+  id string
+  streamCmd *exec.Cmd
+  recordCmd *exec.Cmd
   streamCommand string
-  streamFramerate uint8
+  streamFramerate uint64
   streamBitrate string
-  streamHlsTime uint8
-  streamHlsWrap uint8
+  streamHlsTime uint64
+  streamHlsWrap uint64
   streamCodec string
-  streamDone chan bool
-  streamErr error
   recordCommand string
-  recordFramerate uint8
+  recordFramerate uint64
   recordBitrate string
   recordCodec string
-  recordDone chan bool
-  recordErr error
   inputAddress string
   outputFolder string
 }
 
-func (c *Camera) initiate() {
-  c.initiateStream()
-  c.initiateRecord()
-}
-
-func (c *Camera) initiateStream() {
+func (c *Camera) initiateStream() error {
   c.streamCommand = ""
-  c.streamDone = make(chan bool)
   // Change with OS:
   var path []byte
   var err error
@@ -47,41 +41,39 @@ func (c *Camera) initiateStream() {
     path, err = exec.Command("/usr/bin/which", "ffmpeg").Output()
   }
 
-  if err == nil {
-    c.streamCommand += string(path[0:len(path)-1])
-    fmt.Printf("Path found: %s\n", string(path[:]))
-  } else {
-    log.Fatal(fmt.Sprintf("Could not find ffmpeg binary/executable! Error: %s", err.Error()))
+  syscall.Umask(0)
+  os.Mkdir(fmt.Sprintf("streams/%s", c.outputFolder), 0755)
+
+  if err != nil {
+    return fmt.Errorf("Could not find ffmpeg binary/executable! Error: %s", err.Error())
   }
 
-  // Put in options:
-  if c.streamFramerate == 0 {
-    c.streamFramerate = 30
-  }
-  if c.streamBitrate == "" {
-    c.streamBitrate = "256K"
-  }
-  if c.streamHlsTime == 0 {
-    c.streamHlsTime = 3
-  }
-  if c.streamHlsWrap == 0 {
-    c.streamHlsWrap = 10
-  }
-  if c.streamCodec == "" {
-    c.streamCodec = "copy"
-  }
+  c.streamCommand += string(path[0:len(path)-1])
+  fmt.Printf("Path found: %s\n", string(path[:]))
 
-  cmd := exec.Command(c.streamCommand, "-r", fmt.Sprintf("%d", c.streamFramerate), "-i", c.inputAddress, "-b:v", c.streamBitrate, "-hls_time", fmt.Sprintf("%d", c.streamHlsTime), "-hls_wrap", fmt.Sprintf("%d", c.streamHlsWrap), "-codec", c.streamCodec, fmt.Sprintf("%s/stream.m3u8", c.outputFolder))
-  fmt.Println(cmd.String())
+  c.streamCmd = exec.Command(c.streamCommand, "-r", fmt.Sprintf("%d", c.streamFramerate), "-i", c.inputAddress, "-b:v", c.streamBitrate, "-hls_time", fmt.Sprintf("%d", c.streamHlsTime), "-hls_wrap", fmt.Sprintf("%d", c.streamHlsWrap), "-codec", c.streamCodec, fmt.Sprintf("streams/%s/stream.m3u8", c.outputFolder))
+  fmt.Println(c.streamCmd.String())
   go func() {
-    cmd.Run()
-    c.streamDone <- true
+    c.streamCmd.Run()
+    index := -1
+    for i, camera := range cameras {
+      if camera.id == c.id {
+        index = i
+        break
+      }
+    }
+    if index == -1 {
+      return
+    }
+    cameras[len(cameras)-1], cameras[index] = cameras[index], cameras[len(cameras)-1]
+    cameras = cameras[:len(cameras)-1] // Magic code to delete this camera from the list of cameras
   }()
+
+  return nil
 }
 
-func (c *Camera) initiateRecord() {
+func (c *Camera) initiateRecord() error {
   c.recordCommand = ""
-  c.recordDone = make(chan bool)
   // Change with OS:
   var path []byte
   var err error
@@ -91,28 +83,34 @@ func (c *Camera) initiateRecord() {
     path, err = exec.Command("/usr/bin/which", "ffmpeg").Output()
   }
 
-  if err == nil {
-    c.recordCommand += string(path[0:len(path)-1])
-    fmt.Printf("Path found: %s\n", string(path[:]))
-  } else {
-    log.Fatal(fmt.Sprintf("Could not find ffmpeg binary/executable! Error: %s", err.Error()))
+  syscall.Umask(0)
+  os.Mkdir(fmt.Sprintf("streams/%s", c.outputFolder), 0755)
+
+  if err != nil {
+    return fmt.Errorf("Could not find ffmpeg binary/executable! Error: %s", err.Error())
   }
 
-  // Put in options:
-  if c.recordFramerate == 0 {
-    c.recordFramerate = 30
-  }
-  if c.recordBitrate == "" {
-    c.recordBitrate = "256K"
-  }
-  if c.recordCodec == "" {
-    c.recordCodec = "copy"
-  }
+  c.recordCommand += string(path[0:len(path)-1])
+  fmt.Printf("Path found: %s\n", string(path[:]))
 
-  cmd := exec.Command(c.recordCommand, "-r", fmt.Sprintf("%d", c.recordFramerate), "-i", c.inputAddress, "-b:v", c.recordBitrate, "-codec", c.recordCodec, "-y", fmt.Sprintf("%s/record.mp4", c.outputFolder))
-  fmt.Println(cmd.String())
+  c.recordCmd = exec.Command(c.recordCommand, "-r", fmt.Sprintf("%d", c.recordFramerate), "-i", c.inputAddress, "-b:v", c.recordBitrate, "-codec", c.recordCodec, "-y", fmt.Sprintf("streams/%s/record.mp4", c.outputFolder))
+  fmt.Println(c.recordCmd.String())
   go func() {
-    cmd.Run()
-    c.recordDone <- true
+    c.recordCmd.Run()
+    index := -1
+    for i, camera := range cameras {
+      if camera.id == c.id {
+        index = i
+        break
+      }
+    }
+    if index == -1 {
+      return
+    }
+    cameras[len(cameras)-1], cameras[index] = cameras[index], cameras[len(cameras)-1]
+    cameras = cameras[:len(cameras)-1] // Magic code to delete this camera from the list of cameras
   }()
+
+  return nil
 }
+
