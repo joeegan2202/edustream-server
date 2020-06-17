@@ -10,7 +10,7 @@
 
         let load = () => {
             var video = document.querySelector('video');
-          var videoSrc = `http://localhost:8080/stream/${document.querySelector('#session').value}/stream.m3u8?session=`;
+          var videoSrc = `http://localhost:8080/stream/${document.querySelector('#session').value}/stream.m3u8`;
             if (Hls.isSupported()) {
                 console.log(video)
                 var hls = new Hls();

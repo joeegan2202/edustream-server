@@ -10,7 +10,11 @@ import (
 type ScheduledSession struct {
   session string
   streamFolder string
+  startTime uint64
   endTime uint64
+  className string
+  firstName string
+  lastName string
 }
 
 var scheduledSessions []*ScheduledSession
@@ -32,12 +36,14 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
       } else {
         roomFolder = s.streamFolder
-        break
+        http.StripPrefix(session, http.FileServer(http.Dir(fmt.Sprintf("./streams/%s", roomFolder)))).ServeHTTP(w, r)
+        return
       }
     }
   }
 
-  http.StripPrefix(session, http.FileServer(http.Dir(fmt.Sprintf("./streams/%s", roomFolder)))).ServeHTTP(w, r)
+  w.WriteHeader(http.StatusBadRequest)
+  w.Write([]byte(`{"status": false, "err": "No session for stream found"}`))
 }
 
 func requestStream(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +94,7 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
 
     scheduledSession := new(ScheduledSession)
     scheduledSession.session = session
-    rows, err := db.Query("SELECT classes.room, periods.code, periods.stime, periods.etime FROM sessions INNER JOIN people ON sessions.uname = people.uname INNER JOIN roster ON people.id = roster.pid INNER JOIN classes ON roster.cid = classes.id INNER JOIN periods ON classes.period = periods.code WHERE sessions.id=?;", session)
+    rows, err := db.Query("SELECT classes.room, periods.code, periods.stime, periods.etime, classes.name, people.fname, people.lname FROM sessions INNER JOIN people ON sessions.uname = people.uname INNER JOIN roster ON people.id = roster.pid INNER JOIN classes ON roster.cid = classes.id INNER JOIN periods ON classes.period = periods.code WHERE sessions.id=?;", session)
     if err != nil {
       fmt.Println(err.Error())
       w.WriteHeader(http.StatusInternalServerError)
@@ -99,13 +105,16 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
 
     for rows.Next() {
       var (
+        className string
+        firstName string
+        lastName string
         room string
         period string
         stime uint64
         etime uint64
       )
 
-      if err := rows.Scan(&room, &period, &stime, &etime); err != nil {
+      if err := rows.Scan(&room, &period, &stime, &etime, &className, &firstName, &lastName); err != nil {
         w.WriteHeader(http.StatusInternalServerError)
         w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Invalid data returned from scheduled query"}`)))
         return
@@ -118,7 +127,11 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
       if now < etime && now > stime {
         fmt.Println("Scheduled session is working!")
         scheduledSession.streamFolder = room
+        scheduledSession.startTime = stime
         scheduledSession.endTime = etime
+        scheduledSession.className = className
+        scheduledSession.firstName = firstName
+        scheduledSession.lastName = lastName
         scheduledSessions = append(scheduledSessions, scheduledSession)
         w.WriteHeader(http.StatusOK)
         w.Write([]byte(fmt.Sprintf(`{"status": true, "err": ""}`)))
