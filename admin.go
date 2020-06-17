@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+  "strings"
 	"time"
 )
 
@@ -33,13 +34,13 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
   }
 
   session = query["session"][0]
-  address = query["address"][0]
-  room = query["room"][0]
+  address = strings.ReplaceAll(query["address"][0], "\"", "\\\"") // Escape any double quotes for the command executer
+  room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
   framerate, err = strconv.ParseUint(query["framerate"][0], 10, 64)
-  bitrate = query["bitrate"][0]
+  bitrate = strings.ReplaceAll(query["bitrate"][0], "\"", "\\\"")
   hlsTime, err = strconv.ParseUint(query["hlsTime"][0], 10, 64)
   hlsWrap, err = strconv.ParseUint(query["hlsWrap"][0], 10, 64)
-  codec = query["codec"][0]
+  codec = strings.ReplaceAll(query["codec"][0], "\"", "\\\"")
   hash.Write([]byte(fmt.Sprintf("%s%s%d", address, room, time.Now().Unix())))
   id := fmt.Sprintf("%x", hash.Sum(nil))
 
@@ -180,13 +181,13 @@ func adminUpdateCamera(w http.ResponseWriter, r *http.Request) {
 
   session = query["session"][0]
   id = query["id"][0]
-  address = query["address"][0]
-  room = query["room"][0]
+  address = strings.ReplaceAll(query["address"][0], "\"", "\\\"")
+  room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
   framerate, err = strconv.ParseUint(query["framerate"][0], 10, 64)
-  bitrate = query["bitrate"][0]
+  bitrate = strings.ReplaceAll(query["bitrate"][0], "\"", "\\\"")
   hlsTime, err = strconv.ParseUint(query["hlsTime"][0], 10, 64)
   hlsWrap, err = strconv.ParseUint(query["hlsWrap"][0], 10, 64)
-  codec = query["codec"][0]
+  codec = strings.ReplaceAll(query["codec"][0], "\"", "\\\"")
 
   if err != nil {
     w.WriteHeader(http.StatusBadRequest)

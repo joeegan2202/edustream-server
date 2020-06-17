@@ -49,7 +49,7 @@ func (c *Camera) initiateStream() error {
   }
 
   c.streamCommand += string(path[0:len(path)-1])
-  fmt.Printf("Path found: %s\n", string(path[:]))
+  fmt.Printf("Path found: %s\n", c.streamCommand)
 
   c.streamCmd = exec.Command(c.streamCommand, "-r", fmt.Sprintf("%d", c.streamFramerate), "-i", c.inputAddress, "-b:v", c.streamBitrate, "-hls_time", fmt.Sprintf("%d", c.streamHlsTime), "-hls_wrap", fmt.Sprintf("%d", c.streamHlsWrap), "-codec", c.streamCodec, fmt.Sprintf("streams/%s/stream.m3u8", c.outputFolder))
   fmt.Println(c.streamCmd.String())
@@ -91,7 +91,7 @@ func (c *Camera) initiateRecord() error {
   }
 
   c.recordCommand += string(path[0:len(path)-1])
-  fmt.Printf("Path found: %s\n", string(path[:]))
+  fmt.Printf("Path found: %s\n", c.recordCommand)
 
   c.recordCmd = exec.Command(c.recordCommand, "-r", fmt.Sprintf("%d", c.recordFramerate), "-i", c.inputAddress, "-b:v", c.recordBitrate, "-codec", c.recordCodec, "-y", fmt.Sprintf("streams/%s/record.mp4", c.outputFolder))
   fmt.Println(c.recordCmd.String())

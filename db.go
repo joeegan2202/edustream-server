@@ -82,7 +82,7 @@ func createTables(db *sql.DB) {
   db.Exec("CREATE TABLE people ( id CHAR(64) NOT NULL, uname VARCHAR(20) NOT NULL, fname VARCHAR(20) NOT NULL, lname VARCHAR(20) NOT NULL, role CHAR NOT NULL, PRIMARY KEY(id) );")
   db.Exec("CREATE TABLE classes ( id CHAR(64) NOT NULL, name VARCHAR(40) NOT NULL, room VARCHAR(20) NOT NULL, period VARCHAR(10) NOT NULL, PRIMARY KEY(id) );")
   db.Exec("CREATE TABLE roster ( pid CHAR(64) NOT NULL, cid CHAR(64) NOT NULL, FOREIGN KEY (pid) REFERENCES people(id), FOREIGN KEY (cid) REFERENCES classes(id) );")
-  db.Exec("CREATE TABLE periods ( code VARCHAR(10) NOT NULL, stime INT NOT NULL, etime INT NOT NULL, date DATE NOT NULL );")
+  db.Exec("CREATE TABLE periods ( code VARCHAR(10) NOT NULL, stime INT NOT NULL, etime INT NOT NULL );")
   db.Exec("CREATE TABLE sessions ( id CHAR(64) NOT NULL, time INT NOT NULL, uname VARCHAR(20) NOT NULL, PRIMARY KEY (id) );")
 }
 
