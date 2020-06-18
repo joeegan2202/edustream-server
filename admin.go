@@ -344,7 +344,7 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
   }
 
   camera.inputAddress = fmt.Sprintf("%s/stream/%s/stream.m3u8", schoolAddress, cameraId)
-  camera.outputFolder = room
+  camera.outputFolder = fmt.Sprintf("%s/%s", sid, room)
   camera.id = cameraId
   camera.streamHlsTime = hlsTime
   camera.streamHlsWrap = hlsWrap

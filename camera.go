@@ -36,7 +36,7 @@ func (c *Camera) initiateStream() error {
   }
 
   syscall.Umask(0)
-  os.Mkdir(fmt.Sprintf("streams/%s", c.outputFolder), 0755)
+  os.MkdirAll(fmt.Sprintf("streams/%s", c.outputFolder), 0755)
 
   if err != nil {
     return fmt.Errorf("Could not find ffmpeg binary/executable! Error: %s", err.Error())
@@ -45,7 +45,7 @@ func (c *Camera) initiateStream() error {
   c.streamCommand += string(path[0:len(path)-1])
   fmt.Printf("Path found: %s\n", c.streamCommand)
 
-  c.streamCmd = exec.Command(c.streamCommand, "-i", c.inputAddress, "-hls_time", fmt.Sprintf("%d", c.streamHlsTime), "-hls_wrap", fmt.Sprintf("%d", c.streamHlsWrap), fmt.Sprintf("streams/%s/stream.m3u8", c.outputFolder))
+  c.streamCmd = exec.Command(c.streamCommand, "-i", c.inputAddress, "-hls_time", fmt.Sprintf("%d", c.streamHlsTime), "-hls_wrap", fmt.Sprintf("%d", c.streamHlsWrap), "-codec", "copy", fmt.Sprintf("streams/%s/stream.m3u8", c.outputFolder))
   fmt.Println(c.streamCmd.String())
   go func() {
     c.streamCmd.Run()
@@ -78,7 +78,7 @@ func (c *Camera) initiateRecord() error {
   }
 
   syscall.Umask(0)
-  os.Mkdir(fmt.Sprintf("streams/%s", c.outputFolder), 0755)
+  os.MkdirAll(fmt.Sprintf("streams/%s", c.outputFolder), 0755)
 
   if err != nil {
     return fmt.Errorf("Could not find ffmpeg binary/executable! Error: %s", err.Error())
@@ -87,7 +87,7 @@ func (c *Camera) initiateRecord() error {
   c.recordCommand += string(path[0:len(path)-1])
   fmt.Printf("Path found: %s\n", c.recordCommand)
 
-  c.recordCmd = exec.Command(c.recordCommand, "-i", c.inputAddress, "-y", fmt.Sprintf("streams/%s/record.mp4", c.outputFolder))
+  c.recordCmd = exec.Command(c.recordCommand, "-i", c.inputAddress, "-y", "-codec", "copy", fmt.Sprintf("streams/%s/record.mp4", c.outputFolder))
   fmt.Println(c.recordCmd.String())
   go func() {
     c.recordCmd.Run()
