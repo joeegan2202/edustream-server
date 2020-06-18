@@ -3,7 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
@@ -335,8 +335,7 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  var body []byte
-  _, err = io.ReadFull(response.Body, body)
+  body, err := ioutil.ReadAll(response.Body)
   fmt.Println(string(body))
   if err != nil || strings.Split(string(body), ";")[0] != "true" {
     w.WriteHeader(http.StatusInternalServerError)
