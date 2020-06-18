@@ -78,7 +78,7 @@ func loadDatabase() *sql.DB {
 }
 
 func createTables(db *sql.DB) {
-  db.Exec("CREATE TABLE cameras ( id CHAR(64) NOT NULL, address VARCHAR(255) NOT NULL, room VARCHAR(20) NOT NULL, framerate INT NOT NULL, bitrate VARCHAR(10) NOT NULL, hlsTime INT NOT NULL, hlsWrap INT NOT NULL, codec VARCHAR(20) NOT NULL, PRIMARY KEY (id) );")
+  db.Exec("CREATE TABLE cameras ( id CHAR(64) NOT NULL, address VARCHAR(255) NOT NULL, room VARCHAR(20) NOT NULL, hlsTime INT NOT NULL, hlsWrap INT NOT NULL, PRIMARY KEY (id) );")
   db.Exec("CREATE TABLE people ( id CHAR(64) NOT NULL, uname VARCHAR(20) NOT NULL, fname VARCHAR(20) NOT NULL, lname VARCHAR(20) NOT NULL, role CHAR NOT NULL, PRIMARY KEY(id) );")
   db.Exec("CREATE TABLE classes ( id CHAR(64) NOT NULL, name VARCHAR(40) NOT NULL, room VARCHAR(20) NOT NULL, period VARCHAR(10) NOT NULL, PRIMARY KEY(id) );")
   db.Exec("CREATE TABLE roster ( pid CHAR(64) NOT NULL, cid CHAR(64) NOT NULL, FOREIGN KEY (pid) REFERENCES people(id), FOREIGN KEY (cid) REFERENCES classes(id) );")
@@ -87,7 +87,7 @@ func createTables(db *sql.DB) {
 }
 
 func populateSomeData(db *sql.DB) {
-  db.Exec("INSERT INTO cameras VALUES ( '84257', 'rtsp://170.93.143.139/rtplive/470011e600ef003a004ee33696235daa', '4103', 30, '16M', 3, 10, 'copy' );")
+  db.Exec("INSERT INTO cameras VALUES ( '84257', 'rtsp://170.93.143.139/rtplive/470011e600ef003a004ee33696235daa', '4103', 3, 10 );")
   db.Exec("INSERT INTO people VALUES ( '18427', 'jeegan21', 'Joseph', 'Egan', 'S' );")
   db.Exec("INSERT INTO people VALUES ( '659244', 'mtegan22', 'Max', 'Egan', 'S' );")
   db.Exec("INSERT INTO people VALUES ( '472662', 'regan', 'Rose', 'Egan', 'T' );")

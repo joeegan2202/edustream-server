@@ -26,7 +26,7 @@ func main() {
 
   db = loadDatabase()
 
-  //createTables(db)
+  createTables(db)
   //populateSomeData(db)
 
   db.Exec("DELETE FROM sessions;") // Reset sessions and insert some dummy sessions for testing
@@ -38,7 +38,7 @@ func main() {
   db.Exec("INSERT INTO people VALUES ( ?, 'jeegan21', 'Joseph', 'Egan', 'S');", fmt.Sprintf("%x", uid))
   db.Exec("INSERT INTO people VALUES ( ?, 'admin', 'Admin', 'Admin', 'A');", fmt.Sprintf("%x", aid))
   db.Exec("INSERT INTO classes VALUES ( ?, 'Spanish III X', '2016', 'A');", fmt.Sprintf("%x", classid))
-  db.Exec("INSERT INTO periods VALUES ( 'A', ?, ?);", time.Date(2020, time.June, 17, 12, 0, 0, 0, time.Local).Unix(), time.Date(2020, time.June, 17, 15, 55, 0, 0, time.Local).Unix())
+  db.Exec("INSERT INTO periods VALUES ( 'A', ?, ?);", time.Date(2020, time.June, 17, 17, 0, 0, 0, time.Local).Unix(), time.Date(2020, time.June, 17, 22, 0, 0, 0, time.Local).Unix())
   db.Exec("INSERT INTO roster VALUES (?, ?);", fmt.Sprintf("%x", uid), fmt.Sprintf("%x", classid))
   db.Exec("INSERT INTO sessions VALUES ( ?, ?, 'jeegan21');", fmt.Sprintf("%x", sessionid), time.Now().Unix())
   db.Exec("INSERT INTO sessions VALUES ( ?, ?, 'admin');", "91c39dbc8b36cfaeba98ca25ef56de400d1401f0d4dd6b4e0a081d4ed12e2af2", time.Now().Unix())

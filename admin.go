@@ -20,14 +20,11 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
   var session string
   var address string
   var room string
-  var framerate uint64
-  var bitrate string
   var hlsTime uint64
   var hlsWrap uint64
-  var codec string
   var err error
 
-  if query["session"] == nil || query["address"] == nil || query["room"] == nil || query["framerate"] == nil || query["bitrate"] == nil || query["hlsTime"] == nil || query["hlsWrap"] == nil || query["codec"] == nil {
+  if query["session"] == nil || query["address"] == nil || query["room"] == nil || query["hlsTime"] == nil || query["hlsWrap"] == nil {
     w.WriteHeader(http.StatusBadRequest)
     w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
     return
@@ -36,11 +33,8 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
   session = query["session"][0]
   address = strings.ReplaceAll(query["address"][0], "\"", "\\\"") // Escape any double quotes for the command executer
   room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
-  framerate, err = strconv.ParseUint(query["framerate"][0], 10, 64)
-  bitrate = strings.ReplaceAll(query["bitrate"][0], "\"", "\\\"")
   hlsTime, err = strconv.ParseUint(query["hlsTime"][0], 10, 64)
   hlsWrap, err = strconv.ParseUint(query["hlsWrap"][0], 10, 64)
-  codec = strings.ReplaceAll(query["codec"][0], "\"", "\\\"")
   hash.Write([]byte(fmt.Sprintf("%s%s%d", address, room, time.Now().Unix())))
   id := fmt.Sprintf("%x", hash.Sum(nil))
 
@@ -62,7 +56,7 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera with address or room code already created"}`)))
     return
   }
-  _, err = db.Exec("INSERT INTO cameras VALUES (?, ?, ?, ?, ?, ?, ?, ?);", id, address, room, framerate, bitrate, hlsTime, hlsWrap, codec)
+  _, err = db.Exec("INSERT INTO cameras VALUES (?, ?, ?, ?, ?);", id, address, room, hlsTime, hlsWrap)
 
   if err != nil {
     fmt.Printf("Error found: %s\n", err.Error())
@@ -115,16 +109,13 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
 			id string
 			address string
       room string
-      framerate uint64
-      bitrate string
       hlsTime uint64
       hlsWrap uint64
-      codec string
       streaming bool
       recording bool
 		)
 
-		if err := rows.Scan(&id, &address, &room, &framerate, &bitrate, &hlsTime, &hlsWrap, &codec); err != nil {
+		if err := rows.Scan(&id, &address, &room, &hlsTime, &hlsWrap); err != nil {
       fmt.Println(err.Error())
       w.WriteHeader(http.StatusInternalServerError)
       w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for camera values"}`)))
@@ -146,7 +137,7 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
       }
     }
 
-    jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "framerate": %d, "bitrate": "%s", "hlsTime": %d, "hlsWrap": %d, "codec": "%s", "streaming": %t, "recording": %t}`, id, address, room, framerate, bitrate, hlsTime, hlsWrap, codec, streaming, recording)
+    jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "hlsTime": %d, "hlsWrap": %d, "streaming": %t, "recording": %t}`, id, address, room, hlsTime, hlsWrap, streaming, recording)
 	}
 
   jsonAccumulator += "]"
@@ -166,14 +157,11 @@ func adminUpdateCamera(w http.ResponseWriter, r *http.Request) {
   var id string
   var address string
   var room string
-  var framerate uint64
-  var bitrate string
   var hlsTime uint64
   var hlsWrap uint64
-  var codec string
   var err error
 
-  if query["id"] == nil || query["session"] == nil || query["address"] == nil || query["room"] == nil || query["framerate"] == nil || query["bitrate"] == nil || query["hlsTime"] == nil || query["hlsWrap"] == nil || query["codec"] == nil {
+  if query["id"] == nil || query["session"] == nil || query["address"] == nil || query["room"] == nil || query["hlsTime"] == nil || query["hlsWrap"] == nil {
     w.WriteHeader(http.StatusBadRequest)
     w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
     return
@@ -183,11 +171,8 @@ func adminUpdateCamera(w http.ResponseWriter, r *http.Request) {
   id = query["id"][0]
   address = strings.ReplaceAll(query["address"][0], "\"", "\\\"")
   room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
-  framerate, err = strconv.ParseUint(query["framerate"][0], 10, 64)
-  bitrate = strings.ReplaceAll(query["bitrate"][0], "\"", "\\\"")
   hlsTime, err = strconv.ParseUint(query["hlsTime"][0], 10, 64)
   hlsWrap, err = strconv.ParseUint(query["hlsWrap"][0], 10, 64)
-  codec = strings.ReplaceAll(query["codec"][0], "\"", "\\\"")
 
   if err != nil {
     w.WriteHeader(http.StatusBadRequest)
@@ -207,7 +192,7 @@ func adminUpdateCamera(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera to update does not exist!"}`)))
     return
   }
-  _, err = db.Exec("UPDATE cameras SET address=?, room=?, framerate=?, bitrate=?, hlsTime=?, hlsWrap=?, codec=? WHERE id=?;", address, room, framerate, bitrate, hlsTime, hlsWrap, codec, id)
+  _, err = db.Exec("UPDATE cameras SET address=?, room=?, hlsTime=?, hlsWrap=?, WHERE id=?;", address, room, hlsTime, hlsWrap, id)
 
   if err != nil {
     fmt.Printf("Error found: %s\n", err.Error())
@@ -316,14 +301,11 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
     id string
     address string
     room string
-    framerate uint64
-    bitrate string
     hlsTime uint64
     hlsWrap uint64
-    codec string
   )
 
-  err = rows.Scan(&id, &address, &room, &framerate, &bitrate, &hlsTime, &hlsWrap, &codec)
+  err = rows.Scan(&id, &address, &room, &hlsTime, &hlsWrap)
 
   if err != nil {
     fmt.Println(err.Error())
@@ -335,12 +317,6 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
   camera.inputAddress = address
   camera.outputFolder = room
   camera.id = id
-  camera.streamBitrate = bitrate
-  camera.recordBitrate = bitrate
-  camera.streamCodec = codec
-  camera.recordCodec = codec
-  camera.streamFramerate = framerate
-  camera.recordFramerate = framerate
   camera.streamHlsTime = hlsTime
   camera.streamHlsWrap = hlsWrap
 
