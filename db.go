@@ -65,10 +65,11 @@ func loadDatabase() *sql.DB {
 
   uname := os.Getenv("DB_USER")
   pword := os.Getenv("DB_PASS")
+  host := os.Getenv("DB_HOST")
 
   fmt.Printf("Username: %s, Password: %s\n", uname, pword)
 
-  db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@/classroom", uname, pword))
+  db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s/classroom", uname, pword, host))
 
   if err != nil {
     log.Fatal(err.Error())
