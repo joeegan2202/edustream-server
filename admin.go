@@ -337,6 +337,7 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
 
   var body []byte
   _, err = io.ReadFull(response.Body, body)
+  fmt.Println(string(body))
   if err != nil || strings.Split(string(body), ";")[0] != "true" {
     w.WriteHeader(http.StatusInternalServerError)
     w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
