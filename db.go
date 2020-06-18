@@ -69,7 +69,7 @@ func loadDatabase() *sql.DB {
 
   fmt.Printf("Username: %s, Password: %s\n", uname, pword)
 
-  db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s/classroom", uname, pword, host))
+  db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/classroom", uname, pword, host))
 
   if err != nil {
     log.Fatal(err.Error())
