@@ -22,28 +22,31 @@ func main() {
   hash.Reset()
   hash.Write([]byte(fmt.Sprintf("Spanish III X2016")))
   classid := hash.Sum(nil)
+  hash.Reset()
+  hash.Write([]byte(fmt.Sprintf("Cathedral High School")))
+  sid := hash.Sum(nil)
   fmt.Printf("%x\n", sessionid)
 
   db = loadDatabase()
 
   createTables(db)
-  //populateSomeData(db)
 
+  db.Exec("DELETE FROM schools;")
   db.Exec("DELETE FROM sessions;") // Reset sessions and insert some dummy sessions for testing
   db.Exec("DELETE FROM roster;")
   db.Exec("DELETE FROM people;")
   db.Exec("DELETE FROM classes;")
   db.Exec("DELETE FROM periods;")
-  db.Exec("DELETE FROM sessions;")
-  db.Exec("INSERT INTO people VALUES ( ?, 'jeegan21', 'Joseph', 'Egan', 'S');", fmt.Sprintf("%x", uid))
-  db.Exec("INSERT INTO people VALUES ( ?, 'admin', 'Admin', 'Admin', 'A');", fmt.Sprintf("%x", aid))
-  db.Exec("INSERT INTO classes VALUES ( ?, 'Spanish III X', '2016', 'A');", fmt.Sprintf("%x", classid))
-  db.Exec("INSERT INTO periods VALUES ( 'A', ?, ?);", time.Date(2020, time.June, 17, 17, 0, 0, 0, time.Local).Unix(), time.Date(2020, time.June, 17, 22, 0, 0, 0, time.Local).Unix())
-  db.Exec("INSERT INTO roster VALUES (?, ?);", fmt.Sprintf("%x", uid), fmt.Sprintf("%x", classid))
-  db.Exec("INSERT INTO sessions VALUES ( ?, ?, 'jeegan21');", fmt.Sprintf("%x", sessionid), time.Now().Unix())
-  db.Exec("INSERT INTO sessions VALUES ( ?, ?, 'admin');", "91c39dbc8b36cfaeba98ca25ef56de400d1401f0d4dd6b4e0a081d4ed12e2af2", time.Now().Unix())
+  db.Exec("INSERT INTO schools VALUES ( ?, 'home.eganshub.net', 'Cathedral High School' );", sid)
+  db.Exec("INSERT INTO people VALUES ( ?, ?, 'jeegan21', 'Joseph', 'Egan', 'S');", sid, fmt.Sprintf("%x", uid))
+  db.Exec("INSERT INTO people VALUES ( ?, ?, 'admin', 'Admin', 'Admin', 'A');", sid, fmt.Sprintf("%x", aid))
+  db.Exec("INSERT INTO classes VALUES ( ?, ?, 'Spanish III X', '2016', 'A');", sid, fmt.Sprintf("%x", classid))
+  db.Exec("INSERT INTO periods VALUES ( ?, 'A', ?, ?);", sid, time.Date(2020, time.June, 17, 17, 0, 0, 0, time.Local).Unix(), time.Date(2020, time.June, 17, 22, 0, 0, 0, time.Local).Unix())
+  db.Exec("INSERT INTO roster VALUES ( ?, ?, ?);", sid, fmt.Sprintf("%x", uid), fmt.Sprintf("%x", classid))
+  db.Exec("INSERT INTO sessions VALUES ( ?, ?, ?, 'jeegan21');", sid, fmt.Sprintf("%x", sessionid), time.Now().Unix())
+  db.Exec("INSERT INTO sessions VALUES ( ?, ?, ?, 'admin');", sid, "91c39dbc8b36cfaeba98ca25ef56de400d1401f0d4dd6b4e0a081d4ed12e2af2", time.Now().Unix())
 
-  role, err := checkSession(fmt.Sprintf("%x", uid))
+  role, err := checkSession(fmt.Sprintf("%x", sid), fmt.Sprintf("%x", uid))
 
   if err != nil {
     log.Println(err.Error())

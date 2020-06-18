@@ -52,16 +52,17 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
   query := r.URL.Query()
 
   var session string
+  var sid string
 
-  if query["session"] == nil {
+  if query["session"] == nil || query["sid"] == nil {
     w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Missing session"}`))
+    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
     return
   }
 
   session = query["session"][0]
 
-  role, _ := checkSession(session)
+  role, _ := checkSession(sid, session)
 
   if role == "A" {
     scheduledSession := new(ScheduledSession)
@@ -94,7 +95,7 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
 
     scheduledSession := new(ScheduledSession)
     scheduledSession.session = session
-    rows, err := db.Query("SELECT classes.room, periods.code, periods.stime, periods.etime, classes.name, people.fname, people.lname FROM sessions INNER JOIN people ON sessions.uname = people.uname INNER JOIN roster ON people.id = roster.pid INNER JOIN classes ON roster.cid = classes.id INNER JOIN periods ON classes.period = periods.code WHERE sessions.id=?;", session)
+    rows, err := db.Query("SELECT classes.room, periods.code, periods.stime, periods.etime, classes.name, people.fname, people.lname FROM sessions INNER JOIN people ON sessions.uname = people.uname INNER JOIN roster ON people.id = roster.pid INNER JOIN classes ON roster.cid = classes.id INNER JOIN periods ON classes.period = periods.code WHERE sessions.sid=? AND sessions.id=?;", sid, session)
     if err != nil {
       fmt.Println(err.Error())
       w.WriteHeader(http.StatusInternalServerError)
