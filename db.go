@@ -19,11 +19,8 @@ func checkSession(sid, session string) (string, error) {
   rows, err := db.Query("SELECT time, uname FROM sessions WHERE sid=? AND id=?;", sid, session)
 
   if err != nil {
-    fmt.Println("Error getting first query")
     return "", err
   }
-
-  fmt.Printf("Time: %d\n", time.Now().Unix())
 
   rows.Next()
 
@@ -31,11 +28,9 @@ func checkSession(sid, session string) (string, error) {
   var uname string
 
   if err := rows.Scan(&sessionTime, &uname); err != nil {
-    fmt.Println("Error doing the first scan")
     return "", err
   }
 
-  fmt.Printf("Session time: %d\n", sessionTime)
   now := time.Now().Unix()
   if sessionTime < now - (30*60) {
     db.Exec("DELETE FROM sessions WHERE sid=? AND id=?;", sid, session)
@@ -51,7 +46,6 @@ func checkSession(sid, session string) (string, error) {
   err = row.Scan(&role)
 
   if err != nil {
-    fmt.Println("Error getting uname")
     return "", err
   }
 
@@ -60,19 +54,17 @@ func checkSession(sid, session string) (string, error) {
 
 func loadDatabase() *sql.DB {
   if godotenv.Load("credentials.env") != nil {
-    log.Fatal("Failed to get credentials while loading database")
+    logger.Fatal("Failed to get credentials while loading database")
   }
 
   uname := os.Getenv("DB_USER")
   pword := os.Getenv("DB_PASS")
   host := os.Getenv("DB_HOST")
 
-  fmt.Printf("Username: %s, Password: %s\n", uname, pword)
-
   db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/edustream", uname, pword, host))
 
   if err != nil {
-    log.Fatal(err.Error())
+    logger.Fatal(err.Error())
   }
 
   return db

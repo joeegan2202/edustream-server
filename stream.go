@@ -62,7 +62,10 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
 
   session = query["session"][0]
 
-  role, _ := checkSession(sid, session)
+  role, err := checkSession(sid, session)
+  if err != nil {
+    logger.Printf("Error in requestStream trying to check session! Error: %s\n", err.Error())
+  }
 
   if role == "A" {
     scheduledSession := new(ScheduledSession)
@@ -97,7 +100,7 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
     scheduledSession.session = session
     rows, err := db.Query("SELECT classes.room, periods.code, periods.stime, periods.etime, classes.name, people.fname, people.lname FROM sessions INNER JOIN people ON sessions.uname = people.uname INNER JOIN roster ON people.id = roster.pid INNER JOIN classes ON roster.cid = classes.id INNER JOIN periods ON classes.period = periods.code WHERE sessions.sid=? AND sessions.id=?;", sid, session)
     if err != nil {
-      fmt.Println(err.Error())
+      logger.Printf("Error in requestStream trying to query database for student session! Error: %s\n", err.Error())
       w.WriteHeader(http.StatusInternalServerError)
       w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to retrieve records for schedule query"}`)))
       return
@@ -116,17 +119,15 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
       )
 
       if err := rows.Scan(&room, &period, &stime, &etime, &className, &firstName, &lastName); err != nil {
+        logger.Printf("Error in requestStream trying to scan rows for data! Error: %s\n", err.Error())
         w.WriteHeader(http.StatusInternalServerError)
         w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Invalid data returned from scheduled query"}`)))
         return
       }
 
-      fmt.Println(stime)
-
       now := uint64(time.Now().Unix())
 
       if now < etime && now > stime {
-        fmt.Println("Scheduled session is working!")
         scheduledSession.streamFolder = room
         scheduledSession.startTime = stime
         scheduledSession.endTime = etime

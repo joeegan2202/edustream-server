@@ -3,13 +3,24 @@ package main
 import (
 	"fmt"
 	"log"
+  "os"
 	"net/http"
   "crypto/sha256"
 	"github.com/gorilla/mux"
   "time"
 )
 
+var logger *log.Logger
+
 func main() {
+  f, err := os.OpenFile(fmt.Sprintf("logfile-%s.txt", time.Now().Format(time.RFC3339)), os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+  if err != nil {
+    log.Fatal(err.Error())
+  }
+  defer f.Close()
+
+  logger = log.New(f, "", log.Ldate | log.Ltime)
+
   hash := sha256.New()
   hash.Write([]byte("jeegan21Now"))
   sessionid := hash.Sum(nil)
@@ -29,7 +40,7 @@ func main() {
 
   db = loadDatabase()
 
-  createTables(db)
+  //createTables(db)
 
   db.Exec("DELETE FROM schools;")
   db.Exec("DELETE FROM sessions;") // Reset sessions and insert some dummy sessions for testing
@@ -46,14 +57,6 @@ func main() {
   db.Exec("INSERT INTO sessions VALUES ( ?, ?, ?, 'jeegan21');", fmt.Sprintf("%x", sid), fmt.Sprintf("%x", sessionid), time.Now().Unix())
   db.Exec("INSERT INTO sessions VALUES ( ?, ?, ?, 'admin');", fmt.Sprintf("%x", sid), "91c39dbc8b36cfaeba98ca25ef56de400d1401f0d4dd6b4e0a081d4ed12e2af2", time.Now().Unix())
 
-  role, err := checkSession(fmt.Sprintf("%x", sid), fmt.Sprintf("%x", uid))
-
-  if err != nil {
-    log.Println(err.Error())
-  }
-
-  fmt.Printf("Role found: %v\n", role)
-
   r := mux.NewRouter()
   r.HandleFunc("/admin/start/camera/", adminStartCamera) // Admins can start and stop cameras
   r.HandleFunc("/admin/stop/camera/", adminStopCamera)
@@ -63,6 +66,6 @@ func main() {
   r.HandleFunc("/admin/delete/camera/", adminDeleteCamera)
   r.HandleFunc("/request/", requestStream) // For admins/teachers/students who are requesting a video stream
   r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
-  log.Fatal(http.ListenAndServe(":8080", r))
+  logger.Fatal(http.ListenAndServe(":8080", r))
 }
 
