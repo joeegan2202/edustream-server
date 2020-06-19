@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+  "syscall"
 )
 
 func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
@@ -310,14 +311,6 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
 
   camera := new(Camera)
 
-  f, err := os.OpenFile(fmt.Sprintf("streams/%s/logfile.txt", sid), os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-  if err != nil {
-    log.Fatal(err.Error())
-  }
-  defer f.Close()
-
-  camera.logger = log.New(f, "", log.Ldate | log.Ltime)
-
   var (
     schoolAddress string
     address string
@@ -355,9 +348,19 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
 
   camera.inputAddress = fmt.Sprintf("%s/stream/%s/stream.m3u8", schoolAddress, cameraId)
   camera.outputFolder = fmt.Sprintf("%s/%s", sid, room)
+  syscall.Umask(0)
+  os.MkdirAll(fmt.Sprintf("streams/%s", camera.outputFolder), 0755)
   camera.id = cameraId
   camera.streamHlsTime = hlsTime
   camera.streamHlsWrap = hlsWrap
+
+  f, err := os.OpenFile(fmt.Sprintf("streams/%s/logfile.txt", camera.outputFolder), os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+  if err != nil {
+    log.Fatal(err.Error())
+  }
+  defer f.Close()
+
+  camera.logger = log.New(f, "", log.Ldate | log.Ltime)
 
   cameras = append(cameras, camera)
 

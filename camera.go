@@ -6,7 +6,6 @@ import (
   "log"
 	"os/exec"
 	"runtime"
-	"syscall"
 )
 
 var (
@@ -39,9 +38,6 @@ func (c *Camera) initiateStream() error {
   } else {
     path, err = exec.Command("/usr/bin/which", "ffmpeg").Output()
   }
-
-  syscall.Umask(0)
-  os.MkdirAll(fmt.Sprintf("streams/%s", c.outputFolder), 0755)
 
   if err != nil {
     c.logger.Printf("Could not find binary/executable! Error: %s", err.Error())
@@ -85,9 +81,6 @@ func (c *Camera) initiateRecord() error {
   } else {
     path, err = exec.Command("/usr/bin/which", "ffmpeg").Output()
   }
-
-  syscall.Umask(0)
-  os.MkdirAll(fmt.Sprintf("streams/%s", c.outputFolder), 0755)
 
   if err != nil {
     c.logger.Printf("Could not get binary! Error: %s\n", err.Error())
