@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
+  "os"
+  "log"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -307,6 +309,14 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
   defer rows.Close()
 
   camera := new(Camera)
+
+  f, err := os.OpenFile(fmt.Sprintf("streams/%s/logfile.txt", sid), os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+  if err != nil {
+    log.Fatal(err.Error())
+  }
+  defer f.Close()
+
+  camera.logger = log.New(f, "", log.Ldate | log.Ltime)
 
   var (
     schoolAddress string
