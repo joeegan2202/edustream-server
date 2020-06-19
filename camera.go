@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+  "log"
 	"os/exec"
 	"runtime"
 	"syscall"
@@ -14,6 +15,7 @@ var (
 
 type Camera struct {
   id string
+  sid string
   streamCmd *exec.Cmd
   recordCmd *exec.Cmd
   streamCommand string
@@ -25,10 +27,19 @@ type Camera struct {
 }
 
 func (c *Camera) initiateStream() error {
+  f, err := os.OpenFile(fmt.Sprintf("streams/%s/logfile.txt", c.sid), os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+  if err != nil {
+    log.Fatal(err.Error())
+  }
+  defer f.Close()
+
+  logger := log.New(f, "", log.Ldate | log.Ltime)
+
+  logger.Println("Test line")
+
   c.streamCommand = ""
   // Change with OS:
   var path []byte
-  var err error
   if runtime.GOOS == "windows" {
     path, err = exec.Command("where ffmpeg").Output()
   } else {
@@ -39,6 +50,7 @@ func (c *Camera) initiateStream() error {
   os.MkdirAll(fmt.Sprintf("streams/%s", c.outputFolder), 0755)
 
   if err != nil {
+    logger.Printf("Could not find binary/executable! Error: %s", err.Error())
     return fmt.Errorf("Could not find ffmpeg binary/executable! Error: %s", err.Error())
   }
 
@@ -48,6 +60,7 @@ func (c *Camera) initiateStream() error {
   c.streamCmd = exec.Command(c.streamCommand, "-i", c.inputAddress, "-hls_time", fmt.Sprintf("%d", c.streamHlsTime), "-hls_wrap", fmt.Sprintf("%d", c.streamHlsWrap), "-codec", "copy", fmt.Sprintf("streams/%s/stream.m3u8", c.outputFolder))
   fmt.Println(c.streamCmd.String())
   go func() {
+    c.streamCmd.Stderr = f
     c.streamCmd.Run()
     index := -1
     for i, camera := range cameras {
