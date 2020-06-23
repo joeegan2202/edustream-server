@@ -64,6 +64,7 @@ func main() {
   r.HandleFunc("/admin/read/camera/", adminReadCameras)
   r.HandleFunc("/admin/update/camera/", adminUpdateCamera)
   r.HandleFunc("/admin/delete/camera/", adminDeleteCamera)
+  r.HandleFunc("/auth/", tempAuthorize)
   r.HandleFunc("/request/", requestStream) // For admins/teachers/students who are requesting a video stream
   r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
   logger.Fatal(http.ListenAndServe(":8080", r))
