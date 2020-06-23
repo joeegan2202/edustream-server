@@ -69,3 +69,14 @@ func main() {
   logger.Fatal(http.ListenAndServe(":8080", r))
 }
 
+func getSchools(w http.ResponseWriter, r *http.Request) {
+  query := r.URL.Query()
+
+  if query["term"] == nil {
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Missing query parameters!"}`))
+    return
+  }
+
+
+}
