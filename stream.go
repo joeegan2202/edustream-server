@@ -61,6 +61,7 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
   }
 
   session = query["session"][0]
+  sid = query["sid"][0]
 
   role, err := checkSession(sid, session)
   if err != nil {
