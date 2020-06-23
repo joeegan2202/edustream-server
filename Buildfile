@@ -1,1 +1,1 @@
-make: go build
+make: go build -o application
