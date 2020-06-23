@@ -65,6 +65,9 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
   role, err := checkSession(sid, session)
   if err != nil {
     logger.Printf("Error in requestStream trying to check session! Error: %s\n", err.Error())
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Bad session!"}`))
+    return
   }
 
   if role == "A" {
