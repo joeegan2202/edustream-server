@@ -74,7 +74,7 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
   if role == "A" {
     scheduledSession := new(ScheduledSession)
     scheduledSession.session = session
-    scheduledSession.streamFolder = ""
+    scheduledSession.streamFolder = sid
     scheduledSession.endTime = 9223372036854775807
     scheduledSessions = append(scheduledSessions, scheduledSession)
     w.WriteHeader(http.StatusOK)
@@ -132,7 +132,7 @@ func requestStream(w http.ResponseWriter, r *http.Request) {
       now := uint64(time.Now().Unix())
 
       if now < etime && now > stime {
-        scheduledSession.streamFolder = room
+        scheduledSession.streamFolder = fmt.Sprintf("%s/%s", sid, room)
         scheduledSession.startTime = stime
         scheduledSession.endTime = etime
         scheduledSession.className = className
