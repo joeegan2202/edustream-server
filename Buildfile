@@ -1,1 +1,1 @@
-make: go build -o application
+make: go build -o bin/edustream-server
