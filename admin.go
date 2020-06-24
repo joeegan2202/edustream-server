@@ -29,6 +29,7 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
   var hlsWrap uint64
   var err error
 
+  logger.Println(r.URL)
   if query["session"] == nil || query["sid"] == nil || query["address"] == nil || query["room"] == nil || query["hlsTime"] == nil || query["hlsWrap"] == nil {
     w.WriteHeader(http.StatusBadRequest)
     w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
