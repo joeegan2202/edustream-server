@@ -10,7 +10,7 @@ import (
 func addSession(uname string, sid string) string {
   hash := sha256.New()
   hash.Write([]byte(fmt.Sprintf("%s%d", uname, time.Now().Unix())))
-  id := fmt.Sprintf("%x", hash.Sum(nil))
+  id := string(hash.Sum(nil))
 
   db.Exec("DELETE FROM sessions WHERE uname=? AND sid=?;", uname, sid)
 
