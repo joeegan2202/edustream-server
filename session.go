@@ -12,6 +12,8 @@ func addSession(uname string, sid string) string {
   hash.Write([]byte(fmt.Sprintf("%s%d", uname, time.Now().Unix())))
   id := fmt.Sprintf("%x", hash.Sum(nil))
 
+  logger.Printf("The id found is: %s\n", id)
+
   db.Exec("DELETE FROM sessions WHERE uname=? AND sid=?;", uname, sid)
 
   db.Exec("INSERT INTO sessions VALUES ( ?, ?, ?, ?);", sid, id, time.Now().Unix(), uname)
