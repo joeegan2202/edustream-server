@@ -1,1 +1,1 @@
-web: bin/edustream-server
+web: PORT=8080; bin/edustream-server
