@@ -3,14 +3,11 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
-  "os"
-  "log"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
-  "syscall"
 )
 
 func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +108,7 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  rows, err := db.Query("SELECT id, address, room, hlsTime, hlsWrap FROM cameras WHERE sid=?;", sid)
+  rows, err := db.Query("SELECT id, address, room, hlsTime, hlsWrap, streaming, recording FROM cameras WHERE sid=?;", sid)
 	if err != nil {
     logger.Printf("Error in adminCreateCamera querying database for cameras! Error: %s\n", err.Error())
     w.WriteHeader(http.StatusInternalServerError)
@@ -129,11 +126,11 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
       room string
       hlsTime uint64
       hlsWrap uint64
-      streaming bool
-      recording bool
+      streaming uint64
+      recording uint64
 		)
 
-		if err := rows.Scan(&id, &address, &room, &hlsTime, &hlsWrap); err != nil {
+		if err := rows.Scan(&id, &address, &room, &hlsTime, &hlsWrap, &streaming, &recording); err != nil {
       logger.Printf("Error in adminReadCameras trying to scan row for camera values! Error: %s\n", err.Error())
       w.WriteHeader(http.StatusInternalServerError)
       w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for camera values"}`)))
@@ -142,17 +139,6 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
 
     if jsonAccumulator != "[" {
       jsonAccumulator += ","
-    }
-
-    streaming = false
-    recording = false
-
-    for _, c := range cameras {
-      if c.id == id {
-        streaming = true
-        recording = true
-        break
-      }
     }
 
     jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "hlsTime": %d, "hlsWrap": %d, "streaming": %t, "recording": %t}`, id, address, room, hlsTime, hlsWrap, streaming, recording)
@@ -317,15 +303,19 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  for _, c := range cameras {
-    if c.id == cameraId {
-      w.WriteHeader(http.StatusBadRequest)
-      w.Write([]byte(`{"status": false, "err": "Camera already started"}`))
-      return
-    }
-  }
+  rows, err := db.Query("SELECT * FROM cameras WHERE streaming=1 AND id=?;", cameraId)
 
-  rows, err := db.Query("SELECT schools.address, cameras.address, cameras.room, cameras.hlsTime, cameras.hlsWrap FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
+  if err != nil {
+    logger.Printf("Error in adminStartCamera trying to query needed data for the camera! Error: %s\n", err.Error())
+  }
+  if rows.Next() {
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(`{"status": false, "err": "Camera already started!"}`))
+    return
+  }
+  rows.Close()
+
+  rows, err = db.Query("SELECT schools.address, cameras.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
 
   if err != nil {
     logger.Printf("Error in adminStartCamera trying to query needed data for the camera! Error: %s\n", err.Error())
@@ -337,17 +327,12 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
   }
   defer rows.Close()
 
-  camera := new(Camera)
-
   var (
     schoolAddress string
     address string
-    room string
-    hlsTime uint64
-    hlsWrap uint64
   )
 
-  err = rows.Scan(&schoolAddress, &address, &room, &hlsTime, &hlsWrap)
+  err = rows.Scan(&schoolAddress, &address)
 
   if err != nil {
     logger.Printf("Error in adminStartCamera trying to scan rows for data! Error: %s\n", err.Error())
@@ -374,41 +359,6 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
   if strings.Split(string(body), ";")[0] != "true" {
     w.WriteHeader(http.StatusInternalServerError)
     w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
-    return
-  }
-
-  camera.inputAddress = fmt.Sprintf("%s/stream/%s/stream.m3u8", schoolAddress, cameraId)
-  camera.outputFolder = fmt.Sprintf("%s/%s", sid, room)
-  syscall.Umask(0)
-  os.MkdirAll(fmt.Sprintf("streams/%s", camera.outputFolder), 0755)
-  camera.id = cameraId
-  camera.streamHlsTime = hlsTime
-  camera.streamHlsWrap = hlsWrap
-
-  f, err := os.OpenFile(fmt.Sprintf("streams/%s/logfile-%s.txt", camera.outputFolder, time.Now().Format(time.RFC3339)), os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
-  if err != nil {
-    logger.Printf("Error in adminStartCamera opening log file for camera! Error: %s\n", err.Error())
-    return
-  }
-  defer f.Close()
-
-  camera.logger = log.New(f, "", log.Ldate | log.Ltime)
-
-  cameras = append(cameras, camera)
-
-  err = camera.initiateStream()
-  if err != nil {
-    logger.Printf("Error in adminCreateCamera trying to initiate stream! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Could not initiate the camera's stream"}`))
-    return
-  }
-
-  err = camera.initiateRecord()
-  if err != nil {
-    logger.Printf("Error in adminCreateCamera trying to initiate record! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Could not initiate the camera's record"}`))
     return
   }
 
@@ -447,17 +397,50 @@ func adminStopCamera(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  for _, c := range cameras {
-    if c.id == cameraId {
-      c.streamCmd.Process.Kill()
-      c.recordCmd.Process.Kill()
-      w.WriteHeader(http.StatusOK)
-      w.Write([]byte(`{"status": true, "err": ""}`))
-      return
-    }
+  rows, err := db.Query("SELECT schools.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
+
+  if err != nil {
+    logger.Printf("Error in adminStopCamera trying to query needed data for the camera! Error: %s\n", err.Error())
+  }
+  if !rows.Next() {
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(`{"status": false, "err": "Couldn't find camera id in database!"}`))
+    return
+  }
+  defer rows.Close()
+
+  var schoolAddress string
+
+  err = rows.Scan(&schoolAddress)
+
+  if err != nil {
+    logger.Printf("Error in adminStopCamera trying to scan rows for data! Error: %s\n", err.Error())
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
+    return
+  }
+
+  client := new(http.Client)
+  response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
+
+  if err != nil {
+    logger.Printf("Error in adminStopCamera trying to request that the remote server stops the camera! Error: %s\n", err.Error())
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(`{"status": false, "err": "Error stopping camera api"}`))
+    return
+  }
+
+  body, err := ioutil.ReadAll(response.Body)
+  logger.Printf("Response received while stopping camera: %s\n", string(body))
+  if err != nil {
+    logger.Printf("Error in adminStop reading body from the request! Error: %s\n", err.Error())
+  }
+  if strings.Split(string(body), ";")[0] != "true" {
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
+    return
   }
 
   w.WriteHeader(http.StatusBadRequest)
-  w.Write([]byte(`{"status": false, "err": "Camera not started"}`))
-  return
+  w.Write([]byte(`{"status": true, "err": "Camera stopped"}`))
 }
