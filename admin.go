@@ -22,12 +22,10 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
   var sid string
   var address string
   var room string
-  var hlsTime uint64
-  var hlsWrap uint64
   var err error
 
   logger.Println(r.URL)
-  if query["session"] == nil || query["sid"] == nil || query["address"] == nil || query["room"] == nil || query["hlsTime"] == nil || query["hlsWrap"] == nil {
+  if query["session"] == nil || query["sid"] == nil || query["address"] == nil || query["room"] == nil {
     w.WriteHeader(http.StatusBadRequest)
     w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
     return
@@ -37,8 +35,6 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
   sid = query["sid"][0]
   address = strings.ReplaceAll(query["address"][0], "\"", "\\\"") // Escape any double quotes for the command executer
   room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
-  hlsTime, err = strconv.ParseUint(query["hlsTime"][0], 10, 64)
-  hlsWrap, err = strconv.ParseUint(query["hlsWrap"][0], 10, 64)
   hash.Write([]byte(fmt.Sprintf("%s%s%d", address, room, time.Now().Unix())))
   id := fmt.Sprintf("%x", hash.Sum(nil))
 
@@ -66,7 +62,7 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera with address or room code already created"}`)))
     return
   }
-  _, err = db.Exec("INSERT INTO cameras VALUES ( ?, ?, ?, ?, ?, ? );", sid, id, address, room, hlsTime, hlsWrap)
+  _, err = db.Exec("INSERT INTO cameras VALUES ( ?, ?, ?, ?, 0, 0 );", sid, id, address, room)
 
   if err != nil {
     logger.Printf("Error in adminCreateCamera attempting to insert camera into database! Error: %s\n", err.Error())
@@ -108,7 +104,7 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  rows, err := db.Query("SELECT id, address, room, hlsTime, hlsWrap, streaming, recording FROM cameras WHERE sid=?;", sid)
+  rows, err := db.Query("SELECT id, address, room, streaming, recording FROM cameras WHERE sid=?;", sid)
 	if err != nil {
     logger.Printf("Error in adminCreateCamera querying database for cameras! Error: %s\n", err.Error())
     w.WriteHeader(http.StatusInternalServerError)
@@ -124,13 +120,11 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
 			id string
 			address string
       room string
-      hlsTime uint64
-      hlsWrap uint64
       streaming uint64
       recording uint64
 		)
 
-		if err := rows.Scan(&id, &address, &room, &hlsTime, &hlsWrap, &streaming, &recording); err != nil {
+		if err := rows.Scan(&id, &address, &room, &streaming, &recording); err != nil {
       logger.Printf("Error in adminReadCameras trying to scan row for camera values! Error: %s\n", err.Error())
       w.WriteHeader(http.StatusInternalServerError)
       w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for camera values"}`)))
@@ -141,7 +135,7 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
       jsonAccumulator += ","
     }
 
-    jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "hlsTime": %d, "hlsWrap": %d, "streaming": %t, "recording": %t}`, id, address, room, hlsTime, hlsWrap, streaming, recording)
+    jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "streaming": %d, "recording": %d}`, id, address, room, streaming, recording)
 	}
 
   jsonAccumulator += "]"
@@ -162,11 +156,9 @@ func adminUpdateCamera(w http.ResponseWriter, r *http.Request) {
   var id string
   var address string
   var room string
-  var hlsTime uint64
-  var hlsWrap uint64
   var err error
 
-  if query["id"] == nil || query["sid"] == nil || query["session"] == nil || query["address"] == nil || query["room"] == nil || query["hlsTime"] == nil || query["hlsWrap"] == nil {
+  if query["id"] == nil || query["sid"] == nil || query["session"] == nil || query["address"] == nil || query["room"] == nil {
     w.WriteHeader(http.StatusBadRequest)
     w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
     return
@@ -177,8 +169,6 @@ func adminUpdateCamera(w http.ResponseWriter, r *http.Request) {
   id = query["id"][0]
   address = strings.ReplaceAll(query["address"][0], "\"", "\\\"")
   room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
-  hlsTime, err = strconv.ParseUint(query["hlsTime"][0], 10, 64)
-  hlsWrap, err = strconv.ParseUint(query["hlsWrap"][0], 10, 64)
 
   if err != nil {
     w.WriteHeader(http.StatusBadRequest)
@@ -204,7 +194,7 @@ func adminUpdateCamera(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera to update does not exist!"}`)))
     return
   }
-  _, err = db.Exec("UPDATE cameras SET address=?, room=?, hlsTime=?, hlsWrap=?, WHERE sid=? AND id=?;", address, room, hlsTime, hlsWrap, sid, id)
+  _, err = db.Exec("UPDATE cameras SET address=?, room=? WHERE sid=? AND id=?;", address, room, sid, id)
 
   if err != nil {
     logger.Printf("Error in adminUpdateCamera attempting to execute update query! Error: %s\n", err.Error())
