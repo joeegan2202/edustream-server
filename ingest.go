@@ -16,12 +16,34 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
   fmt.Println(r.URL.EscapedPath())
 
-  dir := r.URL.EscapedPath()[:strings.LastIndex(r.URL.EscapedPath(), "/")]
+  cid := r.URL.EscapedPath()[:strings.LastIndex(r.URL.EscapedPath(), "/")]
+  filename := r.URL.EscapedPath()[strings.LastIndex(r.URL.EscapedPath(), "/"):]
 
-  fmt.Println(dir)
+  rows, err := db.Query("SELECT sid, room FROM cameras WHERE id=?;", cid)
 
-  os.MkdirAll(fmt.Sprintf("%s/%s", os.Getenv("FS_PATH"), dir), 0755)
-  file, err := os.OpenFile(fmt.Sprintf("%s/%s", os.Getenv("FS_PATH"), r.URL.EscapedPath()), os.O_RDWR|os.O_CREATE, 0755)
+  if err != nil || !rows.Next() {
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte("Could not get camera from database!"))
+    return
+  }
+
+  defer rows.Close()
+
+  var room string
+  var sid string
+
+  if err = rows.Scan(&sid, &room); err != nil {
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte("Failed to get room from query!"))
+    return
+  }
+
+  dir := fmt.Sprintf("%s/%s/%s", os.Getenv("FS_PATH"), sid, room)
+
+  fmt.Println(fmt.Sprintf("%s/%s", dir, filename))
+
+  os.MkdirAll(dir, 0755)
+  file, err := os.OpenFile(fmt.Sprintf("%s/%s", dir, filename), os.O_RDWR|os.O_CREATE, 0755)
 
   if err != nil {
     log.Fatal(err.Error())

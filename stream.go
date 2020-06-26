@@ -37,6 +37,7 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
         return
       } else {
         roomFolder = s.streamFolder
+        fmt.Printf("About to serve %s/%s\n", os.Getenv("FS_PATH"), roomFolder)
         http.StripPrefix(session, http.FileServer(http.Dir(fmt.Sprintf("%s/%s", os.Getenv("FS_PATH"), roomFolder)))).ServeHTTP(w, r)
         return
       }
