@@ -67,6 +67,7 @@ func main() {
   r.HandleFunc("/auth/", tempAuthorize)
   r.HandleFunc("/request/", requestStream) // For admins/teachers/students who are requesting a video stream
   r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
+  r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
   logger.Fatal(http.ListenAndServe(":8080", r))
 }
 
