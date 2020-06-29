@@ -302,7 +302,7 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
     w.Write([]byte(`{"status": false, "err": "Camera already started!"}`))
     return
   }
-  rows.Close()
+  defer rows.Close()
 
   rows, err = db.Query("SELECT schools.address, cameras.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
 
