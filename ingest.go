@@ -52,3 +52,10 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
   io.Copy(file, r.Body)
 }
 
+func receiveStatus(w http.ResponseWriter, r *http.Request) {
+  w.Header().Set("Access-Control-Allow-Origin", "*")
+  
+  query := r.URL.Query()
+
+
+}
