@@ -1,4 +1,4 @@
-module classroom-view-server
+module edustream-server
 
 go 1.14
 
