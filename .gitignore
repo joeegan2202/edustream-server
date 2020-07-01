@@ -1,3 +1,5 @@
 streams/*
 credentials.env
 edustream-server
+tools/keygen*
+tools/tools

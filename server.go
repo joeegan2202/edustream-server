@@ -40,7 +40,7 @@ func main() {
 
   db = loadDatabase()
 
-  //createTables(db)
+  createTables(db)
 
   db.Exec("DELETE FROM schools;")
   db.Exec("DELETE FROM sessions;") // Reset sessions and insert some dummy sessions for testing
