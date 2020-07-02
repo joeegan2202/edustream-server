@@ -70,7 +70,7 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
   signData := make([]byte, 2048)
 
-  io.ReadFull(r.Body, signData)
+  io.ReadAtLeast(r.Body, signData, 100)
 
   hasher := sha256.New()
 
