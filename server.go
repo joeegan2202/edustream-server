@@ -48,7 +48,7 @@ func main() {
   db.Exec("DELETE FROM people;")
   db.Exec("DELETE FROM classes;")
   db.Exec("DELETE FROM periods;")
-  db.Exec("INSERT INTO schools VALUES ( ?, 'http://home.eganshub.net', 'Cathedral High School' );", fmt.Sprintf("%x", sid))
+  db.Exec("INSERT INTO schools VALUES ( ?, 'http://home.eganshub.net', 'Cathedral High School', 'Insert public key here:' );", fmt.Sprintf("%x", sid))
   db.Exec("INSERT INTO people VALUES ( ?, ?, 'jeegan21', 'Joseph', 'Egan', 'S');", fmt.Sprintf("%x", sid), fmt.Sprintf("%x", uid))
   db.Exec("INSERT INTO people VALUES ( ?, ?, 'admin', 'Admin', 'Admin', 'A');", fmt.Sprintf("%x", sid), fmt.Sprintf("%x", aid))
   db.Exec("INSERT INTO classes VALUES ( ?, ?, 'Spanish III X', '2016', 'A');", fmt.Sprintf("%x", sid), fmt.Sprintf("%x", classid))
