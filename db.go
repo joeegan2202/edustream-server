@@ -70,7 +70,7 @@ func loadDatabase() *sql.DB {
 }
 
 func createTables(db *sql.DB) {
-  db.Exec("CREATE TABLE schools ( id CHAR(64) NOT NULL, address VARCHAR(255) NOT NULL, name VARCHAR(60) NOT NULL, city VARCHAR(60) NOT NULL, publicKey CHAR(540) NOT NULL, PRIMARY KEY (id) );")
+  db.Exec("CREATE TABLE schools ( id CHAR(64) NOT NULL, address VARCHAR(255) NOT NULL, name VARCHAR(60) NOT NULL, city VARCHAR(60) NOT NULL, publicKey TEXT(540) NOT NULL, PRIMARY KEY (id) );")
   db.Exec("CREATE TABLE cameras ( sid CHAR(64) NOT NULL, id CHAR(64) NOT NULL, address VARCHAR(255) NOT NULL, room VARCHAR(20) NOT NULL, streaming INT NOT NULL, recording INT NOT NULL, PRIMARY KEY (id), FOREIGN KEY(sid) REFERENCES schools(id) );")
   db.Exec("CREATE TABLE people ( sid CHAR(64) NOT NULL, id CHAR(64) NOT NULL, uname VARCHAR(20) NOT NULL, fname VARCHAR(20) NOT NULL, lname VARCHAR(20) NOT NULL, role CHAR NOT NULL, PRIMARY KEY(id), FOREIGN KEY(sid) REFERENCES schools(id) );")
   db.Exec("CREATE TABLE classes ( sid CHAR(64) NOT NULL, id CHAR(64) NOT NULL, name VARCHAR(40) NOT NULL, room VARCHAR(20) NOT NULL, period VARCHAR(10) NOT NULL, PRIMARY KEY(id), FOREIGN KEY(sid) REFERENCES schools(id) );")
