@@ -73,6 +73,8 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
   bytesRead, err := io.ReadAtLeast(r.Body, signData, 100)
 
+  fmt.Println(bytesRead)
+
   if err != nil {
     logger.Printf("Error trying to read bytes for signing! %s\n", err.Error())
   }
