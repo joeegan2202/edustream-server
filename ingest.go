@@ -192,7 +192,7 @@ func receiveStatus(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  _, err = db.Exec("UPDATE cameras SET recording=? WHERE id=?;", status, cid)
+  _, err = db.Exec("UPDATE cameras SET recording=?, streaming=? WHERE id=?;", status, status, cid)
 
   if err != nil {
     w.WriteHeader(http.StatusInternalServerError)
