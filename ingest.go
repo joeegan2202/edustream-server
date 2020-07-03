@@ -77,11 +77,9 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     logger.Printf("Error trying to read bytes for signing! %s\n", err.Error())
   }
 
-  signData = signData[:bytesRead]
-
   hasher := sha256.New()
 
-  hasher.Write(signData)
+  hasher.Write(signData[:bytesRead])
 
   signBytes, err := hex.DecodeString(signature)
 
@@ -110,7 +108,7 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     log.Fatal(err.Error())
   }
 
-  io.Copy(file, io.MultiReader(bytes.NewReader(signData), r.Body))
+  io.Copy(file, io.MultiReader(bytes.NewReader(signData[:bytesRead]), r.Body))
 }
 
 func receiveStatus(w http.ResponseWriter, r *http.Request) {
