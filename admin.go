@@ -52,7 +52,8 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  row, errRow := db.Query("SELECT * FROM cameras WHERE address=? OR room=?;", address, room)
+  //row, errRow := db.Query("SELECT * FROM cameras WHERE address=? OR room=?;", address, room)
+  row, errRow := db.Query("SELECT * FROM cameras WHERE room=?;", room)
   if errRow != nil {
     logger.Printf("Error in adminCreateCamera checking for duplicated camera! Error: %s\n", err.Error())
   }
