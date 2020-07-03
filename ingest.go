@@ -71,7 +71,13 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
   signData := make([]byte, 2048)
 
-  io.ReadAtLeast(r.Body, signData, 100)
+  bytesRead, err := io.ReadAtLeast(r.Body, signData, 100)
+
+  if err != nil {
+    logger.Printf("Error trying to read bytes for signing! %s\n", err.Error())
+  }
+
+  signData = signData[:bytesRead]
 
   hasher := sha256.New()
 
