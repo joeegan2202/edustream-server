@@ -151,7 +151,7 @@ func receiveStatus(w http.ResponseWriter, r *http.Request) {
 
   if err = rows.Scan(&publicKeyString); err != nil {
     w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte("Failed to get room from query!"))
+    w.Write([]byte("Failed to get public key string from query!"))
     return
   }
 
