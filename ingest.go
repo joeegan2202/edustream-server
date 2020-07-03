@@ -60,7 +60,8 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  publicKey, err = x509.ParsePKCS1PublicKey([]byte(publicKeyString))
+  publicKeyBytes, err := hex.DecodeString(publicKeyString)
+  publicKey, err = x509.ParsePKCS1PublicKey(publicKeyBytes)
 
   if err != nil {
     w.WriteHeader(http.StatusInternalServerError)
