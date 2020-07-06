@@ -8,18 +8,6 @@ import (
 	"time"
 )
 
-type ScheduledSession struct {
-  session string
-  streamFolder string
-  startTime uint64
-  endTime uint64
-  className string
-  firstName string
-  lastName string
-}
-
-var scheduledSessions []*ScheduledSession
-
 type StreamServer struct {}
 
 func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -29,19 +17,35 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
   var roomFolder string
 
-  for _, s := range scheduledSessions {
-    if s.session == session {
-      if s.endTime < uint64(time.Now().Unix()) {
-        w.WriteHeader(http.StatusBadRequest)
-        w.Write([]byte(`{"status": false, "err": "Session expired"}`))
-        return
-      } else {
-        roomFolder = s.streamFolder
-        fmt.Printf("About to serve %s/%s\n", os.Getenv("FS_PATH"), roomFolder)
-        http.StripPrefix(session, http.FileServer(http.Dir(fmt.Sprintf("%s/%s", os.Getenv("FS_PATH"), roomFolder)))).ServeHTTP(w, r)
-        return
-      }
-    }
+  rows, err := db.Query("SELECT * FROM sessions WHERE id=?;", session)
+
+  if err != nil {
+    logger.Printf("Error querying sessions to stream! %s\n", err.Error())
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte("Error querying session to stream file!"))
+    return
+  }
+
+  defer rows.Close()
+
+  rows.Next()
+
+  var (
+    id string
+    endTime uint64
+  )
+
+  err = rows.Scan(&id, &endTime)
+
+  if endTime < uint64(time.Now().Unix()) {
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Session expired"}`))
+    return
+  } else {
+    roomFolder = s.streamFolder
+    fmt.Printf("About to serve %s/%s\n", os.Getenv("FS_PATH"), roomFolder)
+    http.StripPrefix(session, http.FileServer(http.Dir(fmt.Sprintf("%s/%s", os.Getenv("FS_PATH"), roomFolder)))).ServeHTTP(w, r)
+    return
   }
 
   w.WriteHeader(http.StatusBadRequest)
