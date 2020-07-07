@@ -337,7 +337,7 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
   if err != nil {
     logger.Printf("Error in adminStartCamera trying to request that the remote server starts the camera! Error: %s\n", err.Error())
     w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Error starting camera api"}`))
+    w.Write([]byte(`{"status": false, "err": "Error starting camera feed"}`))
     return
   }
 
@@ -433,7 +433,7 @@ func adminStartAll(w http.ResponseWriter, r *http.Request) {
     if err != nil {
       logger.Printf("Error in adminStartAll trying to request that the remote server starts the camera! Error: %s\n", err.Error())
       w.WriteHeader(http.StatusInternalServerError)
-      w.Write([]byte(`{"status": false, "err": "Error starting camera api"}`))
+      w.Write([]byte(`{"status": false, "err": "Error starting camera feed"}`))
       return
     }
 
@@ -519,7 +519,7 @@ func adminStopCamera(w http.ResponseWriter, r *http.Request) {
   if err != nil {
     logger.Printf("Error in adminStopCamera trying to request that the remote server stops the camera! Error: %s\n", err.Error())
     w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Error stopping camera api"}`))
+    w.Write([]byte(`{"status": false, "err": "Error stopping camera feed"}`))
     return
   }
 
@@ -537,3 +537,106 @@ func adminStopCamera(w http.ResponseWriter, r *http.Request) {
   w.WriteHeader(http.StatusBadRequest)
   w.Write([]byte(`{"status": true, "err": "Camera stopped"}`))
 }
+
+func adminStopAll(w http.ResponseWriter, r *http.Request) {
+  w.Header().Set("Access-Control-Allow-Origin", "*")
+  w.Header().Set("Content-Type", "application/json")
+
+  query := r.URL.Query()
+
+  var (
+    session string
+    sid string
+  )
+
+  if query["sid"] == nil || query["session"] == nil {
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+    return
+  }
+
+  session = query["session"][0]
+  sid = query["sid"][0]
+
+  if role, err := checkSession(sid, session); role != "A" {
+    if err != nil {
+      logger.Printf("Error in adminStopAll trying to check session! Error: %s\n", err.Error())
+    }
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+    return
+  }
+
+  rows, err := db.Query("SELECT * FROM cameras WHERE sid=? AND streaming=1;", sid)
+
+  if err != nil {
+    logger.Printf("Error in adminStopAll trying to query needed data for the camera! Error: %s\n", err.Error())
+  }
+
+  if !rows.Next() {
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte(`{"status": true, "err": "All cameras are already stopped, or no cameras in database!"}`))
+    return
+  }
+
+  rows.Close()
+
+  rows, err = db.Query("SELECT schools.address, cameras.id FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.streaming=1;", sid)
+
+  if err != nil {
+    logger.Printf("Error in adminStopAll trying to query needed data for the camera! Error: %s\n", err.Error())
+  }
+
+  updated := false
+
+  defer rows.Close()
+
+  for rows.Next() {
+    updated = true
+
+    var (
+      schoolAddress string
+      cameraId string
+    )
+
+    err = rows.Scan(&schoolAddress, &cameraId)
+
+    if err != nil {
+      logger.Printf("Error in adminStopAll trying to scan rows for data! Error: %s\n", err.Error())
+      w.WriteHeader(http.StatusInternalServerError)
+      w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
+      return
+    }
+
+    client := new(http.Client)
+    response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
+
+    if err != nil {
+      logger.Printf("Error in adminStopAll trying to request that the remote server stops the camera! Error: %s\n", err.Error())
+      w.WriteHeader(http.StatusInternalServerError)
+      w.Write([]byte(`{"status": false, "err": "Error stopping camera feed"}`))
+      return
+    }
+
+    body, err := ioutil.ReadAll(response.Body)
+    logger.Printf("Response received while stopping camera: %s\n", string(body))
+    if err != nil {
+      logger.Printf("Error in adminStopAll reading body from the request! Error: %s\n", err.Error())
+    }
+    if strings.Split(string(body), ";")[0] != "true" {
+      w.WriteHeader(http.StatusInternalServerError)
+      w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
+      return
+    }
+  }
+
+  if !updated {
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(`{"status": false, "err": "No rows in database for cameras!"}`))
+    return
+  }
+
+  w.WriteHeader(http.StatusOK)
+  w.Write([]byte(`{"status": true, "err": ""}`))
+}
+

@@ -61,6 +61,7 @@ func main() {
   r.HandleFunc("/admin/start/camera/", adminStartCamera) // Admins can start and stop cameras
   r.HandleFunc("/admin/start/all/", adminStartAll) // Admins can start and stop all of the available cameras
   r.HandleFunc("/admin/stop/camera/", adminStopCamera)
+  r.HandleFunc("/admin/stop/all/", adminStopAll) // Admins can start and stop all of the available cameras
   r.HandleFunc("/admin/create/camera/", adminCreateCamera) // CRUD operations for camera management
   r.HandleFunc("/admin/read/camera/", adminReadCameras)
   r.HandleFunc("/admin/update/camera/", adminUpdateCamera)
