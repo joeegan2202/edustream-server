@@ -66,6 +66,7 @@ func main() {
   r.HandleFunc("/admin/read/camera/", adminReadCameras)
   r.HandleFunc("/admin/update/camera/", adminUpdateCamera)
   r.HandleFunc("/admin/delete/camera/", adminDeleteCamera)
+  r.HandleFunc("/admin/import/people/", importPeople)
   r.HandleFunc("/auth/", tempAuthorize)
   r.HandleFunc("/status/", receiveStatus)
   //r.HandleFunc("/request/", requestStream) // For admins/teachers/students who are requesting a video stream
