@@ -2,6 +2,7 @@ package main
 
 import (
   "net/http"
+  "fmt"
   "encoding/csv"
 )
 
@@ -172,6 +173,8 @@ func importClasses(w http.ResponseWriter, r *http.Request) {
       indices[3] = i
     }
   }
+
+  fmt.Printf("%d, %d, %d, %d\n", indices[0], indices[1], indices[2], indices[3])
 
   // Write rest of data to db
   for {
