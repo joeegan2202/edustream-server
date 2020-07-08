@@ -2,7 +2,6 @@ package main
 
 import (
   "net/http"
-  "fmt"
   "encoding/csv"
 )
 
@@ -175,8 +174,6 @@ func importClasses(w http.ResponseWriter, r *http.Request) {
       indices[3] = i
     }
   }
-
-  fmt.Printf("%d, %d, %d, %d\n", indices[0], indices[1], indices[2], indices[3])
 
   // Write rest of data to db
   for {
@@ -373,15 +370,22 @@ func importPeriods(w http.ResponseWriter, r *http.Request) {
 
   for i, value := range values {
     switch value {
-    case "name":
+    case "code":
       indices[0] = i
-    case "room":
+    case "stime":
       indices[1] = i
-    case "period":
+    case "etime":
       indices[2] = i
-    case "id":
-      indices[3] = i
     }
+  }
+
+  _, err = db.Exec("DELETE FROM periods WHERE sid=?", sid)
+
+  if err != nil {
+    logger.Printf("Error trying to clear schedule! %s\n", err.Error())
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(`{"status": false, "err": "Error trying to clear schedule!"}`))
+    return
   }
 
   // Write rest of data to db
@@ -391,33 +395,13 @@ func importPeriods(w http.ResponseWriter, r *http.Request) {
       break
     }
 
-    rows, err := db.Query("SELECT * FROM classes WHERE sid=? AND id=?;", sid, record[indices[4]])
+    _, err = db.Exec("INSERT INTO periods VALUES ( ?, ?, ?, ? );", sid, record[indices[0]], record[indices[1]], record[indices[2]])
 
     if err != nil {
-      logger.Printf("Error while trying to query database for import! %s\n", err.Error())
+      logger.Printf("Error trying to insert rows while importing periods! %s\n", err.Error())
       w.WriteHeader(http.StatusInternalServerError)
-      w.Write([]byte(`{"status": false, "err": "Error trying to query database with records!"}`))
+      w.Write([]byte(`{"status": false, "err": "Error trying to import periods!"}`))
       return
-    }
-
-    if rows.Next() {
-      _, err := db.Exec("UPDATE classes SET name=?, room=?, period=? WHERE sid=? AND id=?;", record[indices[0]], record[indices[1]], record[indices[2]], sid, record[indices[4]])
-
-      if err != nil {
-        logger.Printf("Error while trying to update database for import! %s\n", err.Error())
-        w.WriteHeader(http.StatusInternalServerError)
-        w.Write([]byte(`{"status": false, "err": "Error trying to update database with records!"}`))
-        return
-      }
-    } else {
-      _, err = db.Exec("INSERT INTO classes VALUES ( ?, ?, ?, ?, ? );", sid, record[indices[3]], record[indices[0]], record[indices[1]], record[indices[2]])
-
-      if err != nil {
-        logger.Printf("Error trying to insert rows while importing classes! %s\n", err.Error())
-        w.WriteHeader(http.StatusInternalServerError)
-        w.Write([]byte(`{"status": false, "err": "Error trying to import classes!"}`))
-        return
-      }
     }
   }
 
