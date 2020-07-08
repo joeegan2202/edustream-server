@@ -180,7 +180,7 @@ func importClasses(w http.ResponseWriter, r *http.Request) {
       break
     }
 
-    rows, err := db.Query("SELECT * FROM classes WHERE sid=? AND id=?;", sid, record[indices[4]])
+    rows, err := db.Query("SELECT * FROM classes WHERE sid=? AND id=?;", sid, record[indices[3]])
 
     if err != nil {
       logger.Printf("Error while trying to query database for import! %s\n", err.Error())
@@ -190,7 +190,7 @@ func importClasses(w http.ResponseWriter, r *http.Request) {
     }
 
     if rows.Next() {
-      _, err := db.Exec("UPDATE classes SET name=?, room=?, period=? WHERE sid=? AND id=?;", record[indices[0]], record[indices[1]], record[indices[2]], sid, record[indices[4]])
+      _, err := db.Exec("UPDATE classes SET name=?, room=?, period=? WHERE sid=? AND id=?;", record[indices[0]], record[indices[1]], record[indices[2]], sid, record[indices[3]])
 
       if err != nil {
         logger.Printf("Error while trying to update database for import! %s\n", err.Error())
@@ -279,7 +279,7 @@ func importRoster(w http.ResponseWriter, r *http.Request) {
       break
     }
 
-    rows, err := db.Query("SELECT * FROM roster WHERE sid=? AND id=?;", sid, record[indices[4]])
+    rows, err := db.Query("SELECT * FROM roster WHERE sid=? AND id=?;", sid, record[indices[1]])
 
     if err != nil {
       logger.Printf("Error while trying to query database for import! %s\n", err.Error())
