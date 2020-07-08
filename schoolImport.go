@@ -45,6 +45,7 @@ func importPeople(w http.ResponseWriter, r *http.Request) {
   }
 
   dataSheet := csv.NewReader(r.Body)
+  dataSheet.Comment = '#'
 
   // Get headers from csv
   indices := make([]int, 5)
@@ -151,6 +152,7 @@ func importClasses(w http.ResponseWriter, r *http.Request) {
   }
 
   dataSheet := csv.NewReader(r.Body)
+  dataSheet.Comment = '#'
 
   // Get headers from csv
   indices := make([]int, 4)
@@ -256,6 +258,7 @@ func importRoster(w http.ResponseWriter, r *http.Request) {
   }
 
   dataSheet := csv.NewReader(r.Body)
+  dataSheet.Comment = '#'
 
   // Get headers from csv
   indices := make([]int, 2)
@@ -355,6 +358,7 @@ func importPeriods(w http.ResponseWriter, r *http.Request) {
   }
 
   dataSheet := csv.NewReader(r.Body)
+  dataSheet.Comment = '#'
 
   // Get headers from csv
   indices := make([]int, 4)
