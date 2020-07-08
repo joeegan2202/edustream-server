@@ -3,7 +3,6 @@ package main
 import (
   "net/http"
   "encoding/csv"
-  "fmt"
 )
 
 func importPeople(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +64,8 @@ func importPeople(w http.ResponseWriter, r *http.Request) {
       indices[2] = i
     case "role":
       indices[3] = i
+    case "id":
+      indices[4] = i
     }
   }
 
@@ -75,6 +76,27 @@ func importPeople(w http.ResponseWriter, r *http.Request) {
       break
     }
 
-    fmt.Println(record[indices[0]], record[indices[1]], record[indices[2]], record[indices[3]])
+    updated, err := db.Exec("UPDATE people SET uname=?, fname=?, lname=?, role=? WHERE sid=? AND id=?;", record[indices[0]], record[indices[1]], record[indices[2]], record[indices[3]], sid, record[indices[4]])
+
+    if err != nil {
+      logger.Printf("Error while trying to update database for import! %s\n", err.Error())
+      w.WriteHeader(http.StatusInternalServerError)
+      w.Write([]byte(`{"status": false, "err": "Error trying to update database with records!"}`))
+      return
+    }
+
+    if num, _ := updated.RowsAffected(); num == 0 {
+      _, err = db.Exec("INSERT INTO people VALUES ( ?, ?, ?, ?, ?, ? );", sid, record[indices[4]], record[indices[0]], record[indices[1]], record[indices[2]], record[indices[3]])
+
+      if err != nil {
+        logger.Printf("Error trying to insert rows while importing people! %s\n", err.Error())
+        w.WriteHeader(http.StatusInternalServerError)
+        w.Write([]byte(`{"status": false, "err": "Error trying to import people!"}`))
+        return
+      }
+    }
   }
+
+  w.WriteHeader(http.StatusOK)
+  w.Write([]byte(`{"status": true, "err": ""}`))
 }
