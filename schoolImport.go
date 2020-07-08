@@ -71,7 +71,7 @@ func importPeople(w http.ResponseWriter, r *http.Request) {
   // Write rest of data to db
   for {
     record, err := dataSheet.Read()
-    if err == nil {
+    if err != nil {
       break
     }
 
