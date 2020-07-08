@@ -46,7 +46,7 @@ func importPeople(w http.ResponseWriter, r *http.Request) {
   dataSheet := csv.NewReader(r.Body)
 
   // Get headers from csv
-  indices := make([]int, 4)
+  indices := make([]int, 5)
   values, err := dataSheet.Read()
   if err != nil {
     w.WriteHeader(http.StatusInternalServerError)
