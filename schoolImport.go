@@ -285,7 +285,7 @@ func importRoster(w http.ResponseWriter, r *http.Request) {
       break
     }
 
-    rows, err := db.Query("SELECT * FROM roster WHERE sid=? AND id=?;", sid, record[indices[1]])
+    rows, err := db.Query("SELECT * FROM roster INNER JOIN classes AS cold ON roster.cid=cold.id INNER JOIN classes AS cnew ON roster.sid=cnew.sid WHERE roster.sid=? AND cnew.id=? AND roster.pid=? AND cold.period=cnew.period;", sid, record[indices[1]], record[indices[0]])
 
     if err != nil {
       logger.Printf("Error while trying to query database for import! %s\n", err.Error())
@@ -294,8 +294,8 @@ func importRoster(w http.ResponseWriter, r *http.Request) {
       return
     }
 
-    if rows.Next() {
-      _, err := db.Exec("UPDATE classes SET name=?, room=?, period=? WHERE sid=? AND id=?;", record[indices[0]], record[indices[1]], record[indices[2]], sid, record[indices[4]])
+    if !rows.Next() {
+      updated, err := db.Exec("UPDATE roster INNER JOIN classes AS cold ON roster.cid=cold.id INNER JOIN classes AS cnew ON roster.sid=cnew.sid SET roster.cid=cnew.id WHERE roster.sid=? AND cnew.id=? AND roster.pid=? AND cold.period=cnew.period;", sid, record[indices[1]], record[indices[0]])
 
       if err != nil {
         logger.Printf("Error while trying to update database for import! %s\n", err.Error())
@@ -303,14 +303,16 @@ func importRoster(w http.ResponseWriter, r *http.Request) {
         w.Write([]byte(`{"status": false, "err": "Error trying to update database with records!"}`))
         return
       }
-    } else {
-      _, err = db.Exec("INSERT INTO classes VALUES ( ?, ?, ?, ?, ? );", sid, record[indices[3]], record[indices[0]], record[indices[1]], record[indices[2]])
 
-      if err != nil {
-        logger.Printf("Error trying to insert rows while importing classes! %s\n", err.Error())
-        w.WriteHeader(http.StatusInternalServerError)
-        w.Write([]byte(`{"status": false, "err": "Error trying to import classes!"}`))
-        return
+      if num, _ := updated.RowsAffected(); num == 0 {
+        _, err = db.Exec("INSERT INTO roster VALUES ( ?, ?, ? );", sid, record[indices[0]], record[indices[1]])
+
+        if err != nil {
+          logger.Printf("Error trying to insert rows while importing roster! %s\n", err.Error())
+          w.WriteHeader(http.StatusInternalServerError)
+          w.Write([]byte(`{"status": false, "err": "Error trying to import roster!"}`))
+          return
+        }
       }
     }
   }
