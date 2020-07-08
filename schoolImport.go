@@ -288,7 +288,7 @@ func importRoster(w http.ResponseWriter, r *http.Request) {
     rows, err := db.Query("SELECT * FROM roster INNER JOIN classes AS cold ON roster.cid=cold.id INNER JOIN classes AS cnew ON roster.sid=cnew.sid WHERE roster.sid=? AND cnew.id=? AND roster.pid=? AND cold.period=cnew.period;", sid, record[indices[1]], record[indices[0]])
 
     if err != nil {
-      logger.Printf("Error while trying to query database for import! %s\n", err.Error())
+      logger.Printf("Error while trying to query database for import! pid: %s, cid: %s; %s\n", record[indices[0]], record[indices[1]], err.Error())
       w.WriteHeader(http.StatusInternalServerError)
       w.Write([]byte(`{"status": false, "err": "Error trying to query database with records!"}`))
       return
@@ -298,7 +298,7 @@ func importRoster(w http.ResponseWriter, r *http.Request) {
       updated, err := db.Exec("UPDATE roster INNER JOIN classes AS cold ON roster.cid=cold.id INNER JOIN classes AS cnew ON roster.sid=cnew.sid SET roster.cid=cnew.id WHERE roster.sid=? AND cnew.id=? AND roster.pid=? AND cold.period=cnew.period;", sid, record[indices[1]], record[indices[0]])
 
       if err != nil {
-        logger.Printf("Error while trying to update database for import! %s\n", err.Error())
+        logger.Printf("Error while trying to update database for import! pid: %s, cid: %s; %s\n", record[indices[0]], record[indices[1]], err.Error())
         w.WriteHeader(http.StatusInternalServerError)
         w.Write([]byte(`{"status": false, "err": "Error trying to update database with records!"}`))
         return
@@ -308,7 +308,7 @@ func importRoster(w http.ResponseWriter, r *http.Request) {
         _, err = db.Exec("INSERT INTO roster VALUES ( ?, ?, ? );", sid, record[indices[0]], record[indices[1]])
 
         if err != nil {
-          logger.Printf("Error trying to insert rows while importing roster! %s\n", err.Error())
+          logger.Printf("Error trying to insert rows while importing roster! pid: %s, cid: %s; %s\n", record[indices[0]], record[indices[1]], err.Error())
           w.WriteHeader(http.StatusInternalServerError)
           w.Write([]byte(`{"status": false, "err": "Error trying to import roster!"}`))
           return
