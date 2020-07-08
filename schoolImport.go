@@ -69,7 +69,12 @@ func importPeople(w http.ResponseWriter, r *http.Request) {
   }
 
   // Write rest of data to db
-  for record, err := dataSheet.Read(); err == nil; {
+  for {
+    record, err := dataSheet.Read()
+    if err == nil {
+      break
+    }
+
     fmt.Println(record[indices[0]], record[indices[1]], record[indices[2]], record[indices[3]])
   }
 }
