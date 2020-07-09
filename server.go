@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
-  "os"
 	"net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/gorilla/mux"
-  "time"
 )
 
 var logger *log.Logger
@@ -23,6 +26,8 @@ func main() {
   db = loadDatabase()
 
   createTables(db)
+
+  go manageCameras()
 
   r := mux.NewRouter()
   r.HandleFunc("/admin/start/camera/", adminStartCamera) // Admins can start and stop cameras
@@ -59,4 +64,97 @@ func getSchools(w http.ResponseWriter, r *http.Request) {
   }
 
 
+}
+
+func manageCameras() {
+  for {
+    wait := time.After(5 * time.Second)
+
+    now := time.Now().Unix()
+    rows, err := db.Query("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<? AND periods.etime>?;", now, now)
+
+    if err != nil {
+      logger.Printf("Error trying to query database to automatically start cameras! %s\n", err.Error())
+      continue
+    }
+
+    for rows.Next() {
+      var (
+        schoolAddress string
+        cameraId string
+        cameraAddress string
+      )
+
+      err := rows.Scan(&schoolAddress, &cameraId, &cameraAddress)
+
+      if err != nil {
+        logger.Printf("Error trying to scan rows to automatically start cameras! %s\n", err.Error())
+        rows.Close()
+        continue
+      }
+
+      client := new(http.Client)
+      response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraId, cameraAddress))
+
+      if err != nil {
+        logger.Printf("Error trying to request that the remote server starts the camera automatically! Error: %s\n", err.Error())
+        rows.Close()
+        continue
+      }
+
+      body, err := ioutil.ReadAll(response.Body)
+      if err != nil {
+        logger.Printf("Error reading body from the request to automatically start camera! Error: %s\n", err.Error())
+      }
+      if strings.Split(string(body), ";")[0] != "true" {
+        logger.Printf("Remote server failed to start camera! Error: %s\n", strings.Split(string(body), ";")[1])
+        rows.Close()
+        continue
+      }
+    }
+
+    rows, err = db.Query("SELECT schools.address, cameras.id FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime>? OR periods.etime<?) AND cameras.streaming=1;", now, now)
+
+    if err != nil {
+      logger.Printf("Error trying to query database to automatically stop cameras! %s\n", err.Error())
+      continue
+    }
+
+    for rows.Next() {
+      var (
+        schoolAddress string
+        cameraId string
+      )
+
+      err := rows.Scan(&schoolAddress, &cameraId)
+
+      if err != nil {
+        logger.Printf("Error trying to scan rows to automatically stop cameras! %s\n", err.Error())
+        rows.Close()
+        continue
+      }
+
+      client := new(http.Client)
+      response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
+
+      if err != nil {
+        logger.Printf("Error trying to request that the remote server stops the camera automatically! Error: %s\n", err.Error())
+        rows.Close()
+        continue
+      }
+
+      body, err := ioutil.ReadAll(response.Body)
+      if err != nil {
+        logger.Printf("Error reading body from the request to automatically stop camera! Error: %s\n", err.Error())
+      }
+      if strings.Split(string(body), ";")[0] != "true" {
+        logger.Printf("Remote server failed to stop camera! Error: %s\n", strings.Split(string(body), ";")[1])
+        rows.Close()
+        continue
+      }
+    }
+
+    rows.Close()
+    <-wait
+  }
 }
