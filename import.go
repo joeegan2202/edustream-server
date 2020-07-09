@@ -437,7 +437,7 @@ func adminReadPeople(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  rows, err := db.Query("SELECT id, uname, fname, lname, role FROM cameras WHERE sid=?;", sid)
+  rows, err := db.Query("SELECT id, uname, fname, lname, role FROM people WHERE sid=?;", sid)
 	if err != nil {
     logger.Printf("Error in adminReadPeople querying database for people! Error: %s\n", err.Error())
     w.WriteHeader(http.StatusInternalServerError)
