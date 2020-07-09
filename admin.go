@@ -106,7 +106,7 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
 
   rows, err := db.Query("SELECT id, address, room, streaming, recording FROM cameras WHERE sid=?;", sid)
 	if err != nil {
-    logger.Printf("Error in adminCreateCamera querying database for cameras! Error: %s\n", err.Error())
+    logger.Printf("Error in adminReadCameras querying database for cameras! Error: %s\n", err.Error())
     w.WriteHeader(http.StatusInternalServerError)
     w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get cameras"}`)))
     return

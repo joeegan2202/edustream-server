@@ -3,9 +3,10 @@ package main
 import (
   "net/http"
   "encoding/csv"
+  "fmt"
 )
 
-func importPeople(w http.ResponseWriter, r *http.Request) {
+func adminImportPeople(w http.ResponseWriter, r *http.Request) {
   if r.Method == "OPTIONS" {
     w.Header().Set("Access-Control-Allow-Origin", "*")
     w.Header().Set("Access-Control-Allow-Methods", "PUT")
@@ -112,7 +113,7 @@ func importPeople(w http.ResponseWriter, r *http.Request) {
 }
 
 
-func importClasses(w http.ResponseWriter, r *http.Request) {
+func adminImportClasses(w http.ResponseWriter, r *http.Request) {
   if r.Method == "OPTIONS" {
     w.Header().Set("Access-Control-Allow-Origin", "*")
     w.Header().Set("Access-Control-Allow-Methods", "PUT")
@@ -216,7 +217,7 @@ func importClasses(w http.ResponseWriter, r *http.Request) {
   w.Write([]byte(`{"status": true, "err": ""}`))
 }
 
-func importRoster(w http.ResponseWriter, r *http.Request) {
+func adminImportRoster(w http.ResponseWriter, r *http.Request) {
   if r.Method == "OPTIONS" {
     w.Header().Set("Access-Control-Allow-Origin", "*")
     w.Header().Set("Access-Control-Allow-Methods", "PUT")
@@ -318,7 +319,7 @@ func importRoster(w http.ResponseWriter, r *http.Request) {
   w.Write([]byte(`{"status": true, "err": ""}`))
 }
 
-func importPeriods(w http.ResponseWriter, r *http.Request) {
+func adminImportPeriods(w http.ResponseWriter, r *http.Request) {
   if r.Method == "OPTIONS" {
     w.Header().Set("Access-Control-Allow-Origin", "*")
     w.Header().Set("Access-Control-Allow-Methods", "PUT")
@@ -407,5 +408,271 @@ func importPeriods(w http.ResponseWriter, r *http.Request) {
 
   w.WriteHeader(http.StatusOK)
   w.Write([]byte(`{"status": true, "err": ""}`))
+}
+
+func adminReadPeople(w http.ResponseWriter, r *http.Request) {
+  w.Header().Set("Access-Control-Allow-Origin", "*")
+  w.Header().Set("Content-Type", "application/json")
+
+  query := r.URL.Query()
+
+  var session string
+  var sid string
+
+  if query["session"] == nil || query["sid"] == nil {
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+    return
+  }
+
+  session = query["session"][0]
+  sid = query["sid"][0]
+
+  if role, err := checkSession(sid, session); role != "A" {
+    if err != nil {
+      logger.Printf("Error in adminReadPeople trying to check session! Error: %s\n", err.Error())
+    }
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Incorrect role for session"}`))
+    return
+  }
+
+  rows, err := db.Query("SELECT id, uname, fname, lname, role FROM cameras WHERE sid=?;", sid)
+	if err != nil {
+    logger.Printf("Error in adminReadPeople querying database for people! Error: %s\n", err.Error())
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get people"}`)))
+    return
+	}
+	defer rows.Close()
+
+  jsonAccumulator := "["
+
+  for rows.Next() {
+		var (
+			id string
+			uname string
+      fname string
+      lname string
+      role string
+		)
+
+		if err := rows.Scan(&id, &uname, &fname, &lname, &role); err != nil {
+      logger.Printf("Error in adminReadPeople trying to scan row for person values! Error: %s\n", err.Error())
+      w.WriteHeader(http.StatusInternalServerError)
+      w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for person values"}`)))
+      return
+		}
+
+    if jsonAccumulator != "[" {
+      jsonAccumulator += ","
+    }
+
+    jsonAccumulator += fmt.Sprintf(`{"id": "%s", "uname": "%s", "fname": "%s", "lname": "%s", "role": "%s"}`, id, uname, fname, lname, role)
+	}
+
+  jsonAccumulator += "]"
+
+  w.WriteHeader(http.StatusOK)
+  w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "people": %s }`, jsonAccumulator)))
+  return
+}
+
+func adminReadClasses(w http.ResponseWriter, r *http.Request) {
+  w.Header().Set("Access-Control-Allow-Origin", "*")
+  w.Header().Set("Content-Type", "application/json")
+
+  query := r.URL.Query()
+
+  var session string
+  var sid string
+
+  if query["session"] == nil || query["sid"] == nil {
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+    return
+  }
+
+  session = query["session"][0]
+  sid = query["sid"][0]
+
+  if role, err := checkSession(sid, session); role != "A" {
+    if err != nil {
+      logger.Printf("Error in adminReadClasses trying to check session! Error: %s\n", err.Error())
+    }
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Incorrect role for session"}`))
+    return
+  }
+
+  rows, err := db.Query("SELECT id, name, room, period FROM classes WHERE sid=?;", sid)
+	if err != nil {
+    logger.Printf("Error in adminReadClasses querying database for classes! Error: %s\n", err.Error())
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get classes"}`)))
+    return
+	}
+	defer rows.Close()
+
+  jsonAccumulator := "["
+
+  for rows.Next() {
+		var (
+			id string
+			name string
+      room string
+      period string
+		)
+
+		if err := rows.Scan(&id, &name, &room, &period); err != nil {
+      logger.Printf("Error in adminReadClasses trying to scan row for class values! Error: %s\n", err.Error())
+      w.WriteHeader(http.StatusInternalServerError)
+      w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for class values"}`)))
+      return
+		}
+
+    if jsonAccumulator != "[" {
+      jsonAccumulator += ","
+    }
+
+    jsonAccumulator += fmt.Sprintf(`{"id": "%s", "name": "%s", "room": "%s", "period": "%s"}`, id, name, room, period)
+	}
+
+  jsonAccumulator += "]"
+
+  w.WriteHeader(http.StatusOK)
+  w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "classes": %s }`, jsonAccumulator)))
+  return
+}
+
+func adminReadRoster(w http.ResponseWriter, r *http.Request) {
+  w.Header().Set("Access-Control-Allow-Origin", "*")
+  w.Header().Set("Content-Type", "application/json")
+
+  query := r.URL.Query()
+
+  var session string
+  var sid string
+
+  if query["session"] == nil || query["sid"] == nil {
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+    return
+  }
+
+  session = query["session"][0]
+  sid = query["sid"][0]
+
+  if role, err := checkSession(sid, session); role != "A" {
+    if err != nil {
+      logger.Printf("Error in adminReadRoster trying to check session! Error: %s\n", err.Error())
+    }
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Incorrect role for session"}`))
+    return
+  }
+
+  rows, err := db.Query("SELECT pid, cid FROM roster WHERE sid=?;", sid)
+	if err != nil {
+    logger.Printf("Error in adminReadRoster querying database for roster! Error: %s\n", err.Error())
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get roster"}`)))
+    return
+	}
+	defer rows.Close()
+
+  jsonAccumulator := "["
+
+  for rows.Next() {
+		var (
+			pid string
+			cid string
+		)
+
+		if err := rows.Scan(&pid, &cid); err != nil {
+      logger.Printf("Error in adminReadRoster trying to scan row for roster values! Error: %s\n", err.Error())
+      w.WriteHeader(http.StatusInternalServerError)
+      w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for roster values"}`)))
+      return
+		}
+
+    if jsonAccumulator != "[" {
+      jsonAccumulator += ","
+    }
+
+    jsonAccumulator += fmt.Sprintf(`{"pid": "%s", "cid": "%s"}`, pid, cid)
+	}
+
+  jsonAccumulator += "]"
+
+  w.WriteHeader(http.StatusOK)
+  w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "roster": %s }`, jsonAccumulator)))
+  return
+}
+
+func adminReadPeriods(w http.ResponseWriter, r *http.Request) {
+  w.Header().Set("Access-Control-Allow-Origin", "*")
+  w.Header().Set("Content-Type", "application/json")
+
+  query := r.URL.Query()
+
+  var session string
+  var sid string
+
+  if query["session"] == nil || query["sid"] == nil {
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+    return
+  }
+
+  session = query["session"][0]
+  sid = query["sid"][0]
+
+  if role, err := checkSession(sid, session); role != "A" {
+    if err != nil {
+      logger.Printf("Error in adminReadPeriods trying to check session! Error: %s\n", err.Error())
+    }
+    w.WriteHeader(http.StatusBadRequest)
+    w.Write([]byte(`{"status": false, "err": "Incorrect role for session"}`))
+    return
+  }
+
+  rows, err := db.Query("SELECT code, stime, etime FROM periods WHERE sid=?;", sid)
+	if err != nil {
+    logger.Printf("Error in adminReadPeriods querying database for periods! Error: %s\n", err.Error())
+    w.WriteHeader(http.StatusInternalServerError)
+    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get periods"}`)))
+    return
+	}
+	defer rows.Close()
+
+  jsonAccumulator := "["
+
+  for rows.Next() {
+		var (
+			code string
+			stime uint64
+      etime uint64
+		)
+
+		if err := rows.Scan(&code, &stime, &etime); err != nil {
+      logger.Printf("Error in adminReadPeriods trying to scan row for period values! Error: %s\n", err.Error())
+      w.WriteHeader(http.StatusInternalServerError)
+      w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for period values"}`)))
+      return
+		}
+
+    if jsonAccumulator != "[" {
+      jsonAccumulator += ","
+    }
+
+    jsonAccumulator += fmt.Sprintf(`{"code": "%s", "stime": %d, "etime": %d}`, code, stime, etime)
+	}
+
+  jsonAccumulator += "]"
+
+  w.WriteHeader(http.StatusOK)
+  w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "periods": %s }`, jsonAccumulator)))
+  return
 }
 
