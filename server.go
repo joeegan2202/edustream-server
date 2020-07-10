@@ -27,7 +27,7 @@ func main() {
 
 	createTables(db)
 
-	go manageCameras()
+	//go manageCameras()
 
 	r := mux.NewRouter()
 	r.HandleFunc("/admin/start/camera/", adminStartCamera) // Admins can start and stop cameras
