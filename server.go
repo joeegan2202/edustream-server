@@ -66,7 +66,7 @@ func getSchools(w http.ResponseWriter, r *http.Request) {
 }
 
 func manageCameras() {
-	selectq, err := db.Prepare("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<? AND periods.etime>?;")
+	selectq, err := db.Prepare("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime<? AND periods.etime>?) AND cameras.streaming=0;")
 	if err != nil {
 		logger.Panicf("Couldn't initialize starting select statement! %s\n", err.Error())
 	}
