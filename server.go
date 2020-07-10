@@ -66,17 +66,11 @@ func getSchools(w http.ResponseWriter, r *http.Request) {
 }
 
 func manageCameras() {
-	tx, err := db.Begin()
-
-	if err != nil {
-		logger.Panicf("Couldn't initialize transaction! %s\n", err.Error())
-	}
-
-	selectq, err := tx.Prepare("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<? AND periods.etime>?;")
+	selectq, err := db.Prepare("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<? AND periods.etime>?;")
 	if err != nil {
 		logger.Panicf("Couldn't initialize starting select statement! %s\n", err.Error())
 	}
-	selectw, err := tx.Prepare("SELECT schools.address, cameras.id FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime>? OR periods.etime<?) AND cameras.streaming=1;")
+	selectw, err := db.Prepare("SELECT schools.address, cameras.id FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime>? OR periods.etime<?) AND cameras.streaming=1;")
 	if err != nil {
 		logger.Panicf("Couldn't initialize stopping select statement! %s\n", err.Error())
 	}
@@ -169,7 +163,5 @@ func manageCameras() {
 
 		rows.Close()
 		<-wait
-
-		fmt.Println("Repeating!")
 	}
 }
