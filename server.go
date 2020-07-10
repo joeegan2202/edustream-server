@@ -169,5 +169,7 @@ func manageCameras() {
 
 		rows.Close()
 		<-wait
+
+		fmt.Println("Repeating!")
 	}
 }
