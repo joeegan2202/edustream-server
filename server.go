@@ -155,7 +155,7 @@ func manageCameras() {
 				logger.Printf("Error reading body from the request to automatically stop camera! Error: %s\n", err.Error())
 			}
 			if strings.Split(string(body), ";")[0] != "true" {
-				logger.Printf("Remote server failed to stop camera! Error: %s\n", strings.Split(string(body), ";")[1])
+				logger.Printf("Remote server failed to stop camera! Error: %s\n", string(body))
 				rows.Close()
 				continue
 			}
