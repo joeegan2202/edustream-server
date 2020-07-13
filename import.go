@@ -823,7 +823,7 @@ func adminUpdateAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		_, err = db.Exec("INSERT INTO auth VALUES ( ?, ?, ? );", sid, pid, hash.Sum(nil))
+		_, err = db.Exec("INSERT INTO auth VALUES ( ?, ?, ? );", sid, pid, string(hash.Sum(nil)))
 
 		if err != nil {
 			logger.Printf("Error while trying to insert auth user!")
