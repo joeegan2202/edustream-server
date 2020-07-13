@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"time"
 )
@@ -28,18 +29,25 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 	var (
 		sid   string
 		uname string
-		pword string
 	)
 
-	if query["uname"] == nil || query["pword"] == nil || query["sid"] == nil {
+	if query["uname"] == nil || query["sid"] == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"status": false, "err": "Missing parameters!"}`))
 		return
 	}
 
 	uname = query["uname"][0]
-	pword = query["pword"][0]
 	sid = query["sid"][0]
+
+	pword, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		logger.Printf("Error trying to get password from request body! %s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"status": false, "err": "Error trying to get password from request body!"}`)
+		return
+	}
 
 	rows, err := db.Query("SELECT auth.password FROM auth INNER JOIN people ON people.id=auth.pid WHERE people.uname=? AND auth.sid=?;", uname, sid)
 
