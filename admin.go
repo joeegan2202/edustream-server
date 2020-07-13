@@ -373,7 +373,7 @@ func adminStartAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT schools.address, cameras.address, cameras.id FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=?;", sid)
+	rows, err := db.Query("SELECT schools.address, cameras.address, cameras.id FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.locked=0;", sid)
 
 	if err != nil {
 		logger.Printf("Error in adminStartAll trying to query needed data for the camera! Error: %s\n", err.Error())
@@ -541,7 +541,7 @@ func adminStopAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT schools.address, cameras.id FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=?;", sid)
+	rows, err := db.Query("SELECT schools.address, cameras.id FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.locked=0;", sid)
 
 	if err != nil {
 		logger.Printf("Error in adminStopAll trying to query needed data for the camera! Error: %s\n", err.Error())
