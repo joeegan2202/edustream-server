@@ -80,7 +80,7 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 
 	hash := sha256.New()
 	hash.Write([]byte(pword))
-	hashed := string(hash.Sum(nil))
+	hashed := fmt.Sprintf("%x", hash.Sum(nil))
 
 	logger.Printf("Authenticating %s with hashed pass: %s, and dbpass: %s\n", uname, hashed, dbpass)
 

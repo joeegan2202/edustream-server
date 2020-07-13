@@ -814,7 +814,7 @@ func adminUpdateAuth(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	if rows.Next() {
-		_, err = db.Exec("UPDATE auth SET password=? WHERE sid=? AND pid=?;", string(hash.Sum(nil)), sid, pid)
+		_, err = db.Exec("UPDATE auth SET password=? WHERE sid=? AND pid=?;", fmt.Sprintf("%x", hash.Sum(nil)), sid, pid)
 
 		if err != nil {
 			logger.Printf("Error while trying to query database for import! %s\n", err.Error())
@@ -823,7 +823,7 @@ func adminUpdateAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		_, err = db.Exec("INSERT INTO auth VALUES ( ?, ?, ? );", sid, pid, string(hash.Sum(nil)))
+		_, err = db.Exec("INSERT INTO auth VALUES ( ?, ?, ? );", sid, pid, fmt.Sprintf("%x", hash.Sum(nil)))
 
 		if err != nil {
 			logger.Printf("Error while trying to insert auth user!")
