@@ -80,8 +80,11 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 
 	hash := sha256.New()
 	hash.Write([]byte(pword))
+	hashed := string(hash.Sum(nil))
 
-	if dbpass != string(hash.Sum(nil)) {
+	logger.Printf("Authenticating %s with hashed pass: %s, and dbpass: %s\n", uname, hashed, dbpass)
+
+	if dbpass != hashed {
 		logger.Println("Error trying to match given password to database password!")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, `{"status": false, "err": "Wrong password!"}`)
