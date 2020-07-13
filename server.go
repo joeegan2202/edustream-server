@@ -47,6 +47,7 @@ func main() {
 	r.HandleFunc("/admin/read/roster/", adminReadRoster)
 	r.HandleFunc("/admin/read/periods/", adminReadPeriods)
 	r.HandleFunc("/admin/read/auth/", adminReadAuth)
+	r.HandleFunc("/admin/update/auth/", adminUpdateAuth)
 	r.HandleFunc("/admin/lock/camera/", adminLockCamera)
 	r.HandleFunc("/admin/unlock/camera/", adminUnlockCamera)
 	r.HandleFunc("/auth/pass/", passAuth)

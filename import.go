@@ -1,8 +1,10 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/csv"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -747,4 +749,90 @@ func adminReadAuth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "auth": %s }`, jsonAccumulator)))
 	return
+}
+
+func adminUpdateAuth(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "OPTIONS" {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	if query["session"] == nil || query["pid"] == nil || query["sid"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Incorrect parameters given!"}`))
+		return
+	}
+
+	var (
+		session string
+		sid     string
+		pid     string
+	)
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+	pid = query["pid"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Error while checking session!"}`))
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Incorrect role"}`))
+		return
+	}
+
+	pword, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error while reading from request body!"}`))
+		return
+	}
+
+	hash := sha256.New()
+	hash.Write([]byte(pword))
+
+	rows, err := db.Query("SELECT * FROM auth WHERE sid=? AND pid=?;", sid, pid)
+
+	if err != nil {
+		logger.Printf("Error while scanning db for auth user!")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error while scanning db for auth users!"}`))
+		return
+	}
+
+	defer rows.Close()
+
+	if rows.Next() {
+		_, err = db.Exec("UPDATE auth SET password=? WHERE sid=? AND pid=?;", string(hash.Sum(nil)), sid, pid)
+
+		if err != nil {
+			logger.Printf("Error while trying to query database for import! %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Error trying to query database with records!"}`))
+			return
+		}
+	} else {
+		_, err = db.Exec("INSERT INTO auth VALUES ( ?, ?, ? );", sid, pid, hash.Sum(nil))
+
+		if err != nil {
+			logger.Printf("Error while trying to insert auth user!")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Error while trying to insert auth user!"}`))
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
 }
