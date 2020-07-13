@@ -56,7 +56,7 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT auth.password FROM auth INNER JOIN people ON people.id=auth.pid WHERE people.uname=? AND auth.sid=?;", uname, sid)
+	rows, err := db.Query("SELECT auth.password, people.role FROM auth INNER JOIN people ON people.id=auth.pid WHERE people.uname=? AND auth.sid=?;", uname, sid)
 
 	if !rows.Next() {
 		if err != nil {
@@ -68,8 +68,9 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var dbpass string
+	var role string
 
-	err = rows.Scan(&dbpass)
+	err = rows.Scan(&dbpass, &role)
 
 	if err != nil {
 		logger.Printf("Error trying to scan password from database! %s\n", err.Error())
@@ -94,5 +95,5 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 	session := addSession(uname, sid)
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "session": "%s"}`, session)))
+	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "session": "%s", "role": "%s"}`, session, role)))
 }
