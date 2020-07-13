@@ -713,7 +713,7 @@ func adminReadAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT auth.pid, people.uname FROM auth INNER JOIN people ON people.id=auth.pid WHERE sid=?;", sid)
+	rows, err := db.Query("SELECT auth.pid, people.uname FROM auth INNER JOIN people ON people.id=auth.pid WHERE auth.sid=?;", sid)
 	if err != nil {
 		logger.Printf("Error in adminReadAuth querying database for authenticated people! Error: %s\n", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
