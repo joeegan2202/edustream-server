@@ -46,8 +46,9 @@ func main() {
 	r.HandleFunc("/admin/read/classes/", adminReadClasses)
 	r.HandleFunc("/admin/read/roster/", adminReadRoster)
 	r.HandleFunc("/admin/read/periods/", adminReadPeriods)
+	r.HandleFunc("/admin/lock/camera/", adminLockCamera)
+	r.HandleFunc("/admin/unlock/camera/", adminUnlockCamera)
 	r.HandleFunc("/auth/", tempAuthorize)
-	r.HandleFunc("/status/", receiveStatus)
 	//r.HandleFunc("/request/", requestStream) // For admins/teachers/students who are requesting a video stream
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
@@ -66,11 +67,11 @@ func getSchools(w http.ResponseWriter, r *http.Request) {
 }
 
 func manageCameras() {
-	selectq, err := db.Prepare("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime<? AND periods.etime>?) AND cameras.streaming=0;")
+	selectq, err := db.Prepare("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime<? AND periods.etime>?) AND cameras.lastStreamed<?;")
 	if err != nil {
 		logger.Panicf("Couldn't initialize starting select statement! %s\n", err.Error())
 	}
-	selectw, err := db.Prepare("SELECT schools.address, cameras.id FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime>? OR periods.etime<?) AND cameras.streaming=1;")
+	selectw, err := db.Prepare("SELECT schools.address, cameras.id FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime>? OR periods.etime<?) AND cameras.streaming>?;")
 	if err != nil {
 		logger.Panicf("Couldn't initialize stopping select statement! %s\n", err.Error())
 	}
@@ -80,7 +81,7 @@ func manageCameras() {
 		wait := time.After(5 * time.Second)
 
 		now := time.Now().Unix()
-		rows, err := selectq.Query(now, now)
+		rows, err := selectq.Query(now, now, now-60)
 
 		if err != nil {
 			logger.Printf("Error trying to query database to automatically start cameras! %s\n", err.Error())
@@ -121,7 +122,7 @@ func manageCameras() {
 			}
 		}
 
-		rows, err = selectw.Query(now, now)
+		rows, err = selectw.Query(now, now, now-60)
 
 		if err != nil {
 			logger.Printf("Error trying to query database to automatically stop cameras! %s\n", err.Error())

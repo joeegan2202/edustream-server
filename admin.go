@@ -10,633 +10,680 @@ import (
 )
 
 func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Access-Control-Allow-Origin", "*")
-  w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
-  hash := sha256.New()
+	hash := sha256.New()
 
-  query := r.URL.Query()
+	query := r.URL.Query()
 
-  var session string
-  var sid string
-  var address string
-  var room string
-  var err error
+	var session string
+	var sid string
+	var address string
+	var room string
+	var err error
 
-  logger.Println(r.URL)
-  if query["session"] == nil || query["sid"] == nil || query["address"] == nil || query["room"] == nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
-    return
-  }
+	logger.Println(r.URL)
+	if query["session"] == nil || query["sid"] == nil || query["address"] == nil || query["room"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
 
-  session = query["session"][0]
-  sid = query["sid"][0]
-  address = strings.ReplaceAll(query["address"][0], "\"", "\\\"") // Escape any double quotes for the command executer
-  room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
-  hash.Write([]byte(fmt.Sprintf("%s%s%d", address, room, time.Now().Unix())))
-  id := fmt.Sprintf("%x", hash.Sum(nil))
+	session = query["session"][0]
+	sid = query["sid"][0]
+	address = strings.ReplaceAll(query["address"][0], "\"", "\\\"") // Escape any double quotes for the command executer
+	room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
+	hash.Write([]byte(fmt.Sprintf("%s%s%d", address, room, time.Now().Unix())))
+	id := fmt.Sprintf("%x", hash.Sum(nil))
 
-  if err != nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Invalid parameters"}`))
-    return
-  }
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Invalid parameters"}`))
+		return
+	}
 
-  if role, err := checkSession(sid, session); role != "A" {
-    if err != nil {
-      logger.Printf("Error in adminCreateCamera trying to check session! Error: %s\n", err.Error())
-    }
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
-    return
-  }
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminCreateCamera trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
 
-  //row, errRow := db.Query("SELECT * FROM cameras WHERE address=? OR room=?;", address, room)
-  row, errRow := db.Query("SELECT * FROM cameras WHERE room=?;", room)
-  if errRow != nil {
-    logger.Printf("Error in adminCreateCamera checking for duplicated camera! Error: %s\n", err.Error())
-  }
-  if row.Next() {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera with address or room code already created"}`)))
-    return
-  }
-  _, err = db.Exec("INSERT INTO cameras VALUES ( ?, ?, ?, ?, 0, 0 );", sid, id, address, room)
+	//row, errRow := db.Query("SELECT * FROM cameras WHERE address=? OR room=?;", address, room)
+	row, errRow := db.Query("SELECT * FROM cameras WHERE room=?;", room)
+	if errRow != nil {
+		logger.Printf("Error in adminCreateCamera checking for duplicated camera! Error: %s\n", err.Error())
+	}
+	if row.Next() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera with address or room code already created"}`)))
+		return
+	}
+	_, err = db.Exec("INSERT INTO cameras VALUES ( ?, ?, ?, ?, 0, 0 );", sid, id, address, room)
 
-  if err != nil {
-    logger.Printf("Error in adminCreateCamera attempting to insert camera into database! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Error creating camera record"}`))
-    return
-  }
+	if err != nil {
+		logger.Printf("Error in adminCreateCamera attempting to insert camera into database! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error creating camera record"}`))
+		return
+	}
 
-  w.WriteHeader(http.StatusCreated)
-  w.Write([]byte(`{"status": true, "err": ""}`))
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(`{"status": true, "err": ""}`))
 
-  return
+	return
 }
 
 func adminReadCameras(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Access-Control-Allow-Origin", "*")
-  w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
-  query := r.URL.Query()
+	query := r.URL.Query()
 
-  var session string
-  var sid string
+	var session string
+	var sid string
 
-  if query["session"] == nil || query["sid"] == nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
-    return
-  }
+	if query["session"] == nil || query["sid"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
 
-  session = query["session"][0]
-  sid = query["sid"][0]
+	session = query["session"][0]
+	sid = query["sid"][0]
 
-  if role, err := checkSession(sid, session); role != "A" {
-    if err != nil {
-      logger.Printf("Error in adminReadCameras trying to check session! Error: %s\n", err.Error())
-    }
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
-    return
-  }
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminReadCameras trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
 
-  rows, err := db.Query("SELECT id, address, room, streaming, recording FROM cameras WHERE sid=?;", sid)
+	rows, err := db.Query("SELECT id, address, room, lastStreamed, locked FROM cameras WHERE sid=?;", sid)
 	if err != nil {
-    logger.Printf("Error in adminReadCameras querying database for cameras! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get cameras"}`)))
-    return
+		logger.Printf("Error in adminReadCameras querying database for cameras! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get cameras"}`)))
+		return
 	}
 	defer rows.Close()
 
-  jsonAccumulator := "["
+	jsonAccumulator := "["
 
-  for rows.Next() {
+	for rows.Next() {
 		var (
-			id string
-			address string
-      room string
-      streaming uint64
-      recording uint64
+			id           string
+			address      string
+			room         string
+			lastStreamed uint64
+			locked       uint64
 		)
 
-		if err := rows.Scan(&id, &address, &room, &streaming, &recording); err != nil {
-      logger.Printf("Error in adminReadCameras trying to scan row for camera values! Error: %s\n", err.Error())
-      w.WriteHeader(http.StatusInternalServerError)
-      w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for camera values"}`)))
-      return
+		if err := rows.Scan(&id, &address, &room, &lastStreamed, &locked); err != nil {
+			logger.Printf("Error in adminReadCameras trying to scan row for camera values! Error: %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for camera values"}`)))
+			return
 		}
 
-    if jsonAccumulator != "[" {
-      jsonAccumulator += ","
-    }
+		if jsonAccumulator != "[" {
+			jsonAccumulator += ","
+		}
 
-    jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "streaming": %d, "recording": %d}`, id, address, room, streaming, recording)
+		jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "lastStreamed": %d, "locked": %d}`, id, address, room, lastStreamed, locked)
 	}
 
-  jsonAccumulator += "]"
+	jsonAccumulator += "]"
 
-  w.WriteHeader(http.StatusOK)
-  w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "cameras": %s }`, jsonAccumulator)))
-  return
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "cameras": %s }`, jsonAccumulator)))
+	return
 }
 
 func adminUpdateCamera(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Access-Control-Allow-Origin", "*")
-  w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
-  query := r.URL.Query()
+	query := r.URL.Query()
 
-  var session string
-  var sid string
-  var id string
-  var address string
-  var room string
-  var err error
+	var session string
+	var sid string
+	var id string
+	var address string
+	var room string
+	var err error
 
-  if query["id"] == nil || query["sid"] == nil || query["session"] == nil || query["address"] == nil || query["room"] == nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
-    return
-  }
+	if query["id"] == nil || query["sid"] == nil || query["session"] == nil || query["address"] == nil || query["room"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
 
-  session = query["session"][0]
-  sid = query["sid"][0]
-  id = query["id"][0]
-  address = strings.ReplaceAll(query["address"][0], "\"", "\\\"")
-  room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
+	session = query["session"][0]
+	sid = query["sid"][0]
+	id = query["id"][0]
+	address = strings.ReplaceAll(query["address"][0], "\"", "\\\"")
+	room = strings.ReplaceAll(query["room"][0], "\"", "\\\"")
 
-  if err != nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Invalid parameters"}`))
-    return
-  }
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Invalid parameters"}`))
+		return
+	}
 
-  if role, err := checkSession(sid, session); role != "A" {
-    if err != nil {
-      logger.Printf("Error in adminUpdateCamera trying to check session! Error: %s\n", err.Error())
-    }
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
-    return
-  }
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminUpdateCamera trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
 
-  row, err := db.Query("SELECT * FROM cameras WHERE sid=? AND id=?;", sid, id)
-  if err != nil  {
-    logger.Printf("Error in adminUpdateCamera trying to query database for requested camera! Error: %s\n", err.Error())
-  }
-  if !row.Next() {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera to update does not exist!"}`)))
-    return
-  }
-  _, err = db.Exec("UPDATE cameras SET address=?, room=? WHERE sid=? AND id=?;", address, room, sid, id)
+	row, err := db.Query("SELECT * FROM cameras WHERE sid=? AND id=?;", sid, id)
+	if err != nil {
+		logger.Printf("Error in adminUpdateCamera trying to query database for requested camera! Error: %s\n", err.Error())
+	}
+	if !row.Next() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera to update does not exist!"}`)))
+		return
+	}
+	_, err = db.Exec("UPDATE cameras SET address=?, room=? WHERE sid=? AND id=?;", address, room, sid, id)
 
-  if err != nil {
-    logger.Printf("Error in adminUpdateCamera attempting to execute update query! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Error updating camera record"}`))
-    return
-  }
+	if err != nil {
+		logger.Printf("Error in adminUpdateCamera attempting to execute update query! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error updating camera record"}`))
+		return
+	}
 
-  w.WriteHeader(http.StatusCreated)
-  w.Write([]byte(`{"status": true, "err": ""}`))
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(`{"status": true, "err": ""}`))
 
-  return
+	return
 }
 
 func adminDeleteCamera(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Access-Control-Allow-Origin", "*")
-  w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
-  query := r.URL.Query()
+	query := r.URL.Query()
 
-  var session string
-  var sid string
-  var id string
+	var session string
+	var sid string
+	var id string
 
-  if query["session"] == nil || query["sid"] == nil || query["id"] == nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
-    return
-  }
+	if query["session"] == nil || query["sid"] == nil || query["id"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
 
-  session = query["session"][0]
-  sid = query["sid"][0]
-  id = query["id"][0]
+	session = query["session"][0]
+	sid = query["sid"][0]
+	id = query["id"][0]
 
-  if role, err := checkSession(sid, session); role != "A" {
-    if err != nil {
-      logger.Printf("Error in adminDeleteCamera checking session! Error: %s\n", err.Error())
-    }
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
-    return
-  }
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminDeleteCamera checking session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
 
-  row, err := db.Query("SELECT * FROM cameras WHERE sid=? AND id=?;", sid, id)
-  if err != nil {
-    logger.Printf("Error in adminDeleteCamera trying to query database for requested camera! Error: %s\n", err.Error())
-  }
-  if !row.Next() {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera does not exist"}`)))
-    return
-  }
-  _, err = db.Exec("DELETE FROM cameras WHERE sid=? AND id=?;", sid, id)
+	row, err := db.Query("SELECT * FROM cameras WHERE sid=? AND id=?;", sid, id)
+	if err != nil {
+		logger.Printf("Error in adminDeleteCamera trying to query database for requested camera! Error: %s\n", err.Error())
+	}
+	if !row.Next() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera does not exist"}`)))
+		return
+	}
+	_, err = db.Exec("DELETE FROM cameras WHERE sid=? AND id=?;", sid, id)
 
-  if err != nil {
-    logger.Printf("Error in adminDeleteCamera trying to execute delete query! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Error deleting camera record"}`))
-    return
-  }
+	if err != nil {
+		logger.Printf("Error in adminDeleteCamera trying to execute delete query! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error deleting camera record"}`))
+		return
+	}
 
-  w.WriteHeader(http.StatusOK)
-  w.Write([]byte(`{"status": true, "err": ""}`))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
 
-  return
+	return
 }
 
 func adminStartCamera(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Access-Control-Allow-Origin", "*")
-  w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
-  query := r.URL.Query()
+	query := r.URL.Query()
 
-  var (
-    session string
-    sid string
-    cameraId string
-  )
+	var (
+		session  string
+		sid      string
+		cameraId string
+	)
 
-  if query["sid"] == nil || query["session"] == nil || query["cameraId"] == nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
-    return
-  }
+	if query["sid"] == nil || query["session"] == nil || query["cameraId"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
 
-  session = query["session"][0]
-  sid = query["sid"][0]
-  cameraId = query["cameraId"][0]
+	session = query["session"][0]
+	sid = query["sid"][0]
+	cameraId = query["cameraId"][0]
 
-  if role, err := checkSession(sid, session); role != "A" {
-    if err != nil {
-      logger.Printf("Error in adminStartCamera trying to check session! Error: %s\n", err.Error())
-    }
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
-    return
-  }
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminStartCamera trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
 
-  rows, err := db.Query("SELECT * FROM cameras WHERE streaming=1 AND id=?;", cameraId)
+	rows, err := db.Query("SELECT schools.address, cameras.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
 
-  if err != nil {
-    logger.Printf("Error in adminStartCamera trying to query needed data for the camera! Error: %s\n", err.Error())
-  }
-  if rows.Next() {
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Camera already started!"}`))
-    return
-  }
-  defer rows.Close()
+	if err != nil {
+		logger.Printf("Error in adminStartCamera trying to query needed data for the camera! Error: %s\n", err.Error())
+	}
+	if !rows.Next() {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Couldn't find camera id in database!"}`))
+		return
+	}
+	defer rows.Close()
 
-  rows, err = db.Query("SELECT schools.address, cameras.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
+	var (
+		schoolAddress string
+		address       string
+	)
 
-  if err != nil {
-    logger.Printf("Error in adminStartCamera trying to query needed data for the camera! Error: %s\n", err.Error())
-  }
-  if !rows.Next() {
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Couldn't find camera id in database!"}`))
-    return
-  }
-  defer rows.Close()
+	err = rows.Scan(&schoolAddress, &address)
 
-  var (
-    schoolAddress string
-    address string
-  )
+	if err != nil {
+		logger.Printf("Error in adminStartCamera trying to scan rows for data! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
+		return
+	}
 
-  err = rows.Scan(&schoolAddress, &address)
+	client := new(http.Client)
+	response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraId, address))
 
-  if err != nil {
-    logger.Printf("Error in adminStartCamera trying to scan rows for data! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
-    return
-  }
+	if err != nil {
+		logger.Printf("Error in adminStartCamera trying to request that the remote server starts the camera! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error starting camera feed"}`))
+		return
+	}
 
-  client := new(http.Client)
-  response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraId, address))
+	body, err := ioutil.ReadAll(response.Body)
+	logger.Printf("Response received while starting camera: %s\n", string(body))
+	if err != nil {
+		logger.Printf("Error in adminStartCamera reading body from the request! Error: %s\n", err.Error())
+	}
+	if strings.Split(string(body), ";")[0] != "true" {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
+		return
+	}
 
-  if err != nil {
-    logger.Printf("Error in adminStartCamera trying to request that the remote server starts the camera! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Error starting camera feed"}`))
-    return
-  }
-
-  body, err := ioutil.ReadAll(response.Body)
-  logger.Printf("Response received while starting camera: %s\n", string(body))
-  if err != nil {
-    logger.Printf("Error in adminStartCamera reading body from the request! Error: %s\n", err.Error())
-  }
-  if strings.Split(string(body), ";")[0] != "true" {
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
-    return
-  }
-
-  w.WriteHeader(http.StatusOK)
-  w.Write([]byte(`{"status": true, "err": ""}`))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
 }
 
 func adminStartAll(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Access-Control-Allow-Origin", "*")
-  w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
-  query := r.URL.Query()
+	query := r.URL.Query()
 
-  var (
-    session string
-    sid string
-  )
+	var (
+		session string
+		sid     string
+	)
 
-  if query["sid"] == nil || query["session"] == nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
-    return
-  }
+	if query["sid"] == nil || query["session"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
 
-  session = query["session"][0]
-  sid = query["sid"][0]
+	session = query["session"][0]
+	sid = query["sid"][0]
 
-  if role, err := checkSession(sid, session); role != "A" {
-    if err != nil {
-      logger.Printf("Error in adminStartAll trying to check session! Error: %s\n", err.Error())
-    }
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
-    return
-  }
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminStartAll trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
 
-  rows, err := db.Query("SELECT * FROM cameras WHERE sid=? AND streaming=0;", sid)
+	rows, err := db.Query("SELECT schools.address, cameras.address, cameras.id FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=?;", sid)
 
-  if err != nil {
-    logger.Printf("Error in adminStartAll trying to query needed data for the camera! Error: %s\n", err.Error())
-  }
+	if err != nil {
+		logger.Printf("Error in adminStartAll trying to query needed data for the camera! Error: %s\n", err.Error())
+	}
 
-  if !rows.Next() {
-    w.WriteHeader(http.StatusOK)
-    w.Write([]byte(`{"status": true, "err": "All cameras are already started, or no cameras in database!"}`))
-    return
-  }
+	updated := false
 
-  rows.Close()
+	defer rows.Close()
 
-  rows, err = db.Query("SELECT schools.address, cameras.address, cameras.id FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.streaming=0;", sid)
+	for rows.Next() {
+		updated = true
 
-  if err != nil {
-    logger.Printf("Error in adminStartAll trying to query needed data for the camera! Error: %s\n", err.Error())
-  }
+		var (
+			schoolAddress string
+			address       string
+			cameraId      string
+		)
 
-  updated := false
+		err = rows.Scan(&schoolAddress, &address, &cameraId)
 
-  defer rows.Close()
+		if err != nil {
+			logger.Printf("Error in adminStartAll trying to scan rows for data! Error: %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
+			return
+		}
 
-  for rows.Next() {
-    updated = true
+		client := new(http.Client)
+		response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraId, address))
 
-    var (
-      schoolAddress string
-      address string
-      cameraId string
-    )
+		if err != nil {
+			logger.Printf("Error in adminStartAll trying to request that the remote server starts the camera! Error: %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Error starting camera feed"}`))
+			return
+		}
 
-    err = rows.Scan(&schoolAddress, &address, &cameraId)
+		body, err := ioutil.ReadAll(response.Body)
+		logger.Printf("Response received while starting camera: %s\n", string(body))
+		if err != nil {
+			logger.Printf("Error in adminStartAll reading body from the request! Error: %s\n", err.Error())
+		}
+		if strings.Split(string(body), ";")[0] != "true" {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
+			return
+		}
+	}
 
-    if err != nil {
-      logger.Printf("Error in adminStartAll trying to scan rows for data! Error: %s\n", err.Error())
-      w.WriteHeader(http.StatusInternalServerError)
-      w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
-      return
-    }
+	if !updated {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "No rows in database for cameras!"}`))
+		return
+	}
 
-    client := new(http.Client)
-    response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraId, address))
-
-    if err != nil {
-      logger.Printf("Error in adminStartAll trying to request that the remote server starts the camera! Error: %s\n", err.Error())
-      w.WriteHeader(http.StatusInternalServerError)
-      w.Write([]byte(`{"status": false, "err": "Error starting camera feed"}`))
-      return
-    }
-
-    body, err := ioutil.ReadAll(response.Body)
-    logger.Printf("Response received while starting camera: %s\n", string(body))
-    if err != nil {
-      logger.Printf("Error in adminStartAll reading body from the request! Error: %s\n", err.Error())
-    }
-    if strings.Split(string(body), ";")[0] != "true" {
-      w.WriteHeader(http.StatusInternalServerError)
-      w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
-      return
-    }
-  }
-
-  if !updated {
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "No rows in database for cameras!"}`))
-    return
-  }
-
-  w.WriteHeader(http.StatusOK)
-  w.Write([]byte(`{"status": true, "err": ""}`))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
 }
 
 func adminStopCamera(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Access-Control-Allow-Origin", "*")
-  w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
-  query := r.URL.Query()
+	query := r.URL.Query()
 
-  var (
-    session string
-    sid string
-    cameraId string
-  )
+	var (
+		session  string
+		sid      string
+		cameraId string
+	)
 
-  if query["session"] == nil || query["sid"] == nil || query["cameraId"] == nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
-    return
-  }
+	if query["session"] == nil || query["sid"] == nil || query["cameraId"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
 
-  session = query["session"][0]
-  sid = query["sid"][0]
-  cameraId = query["cameraId"][0]
+	session = query["session"][0]
+	sid = query["sid"][0]
+	cameraId = query["cameraId"][0]
 
-  if role, err := checkSession(sid, session); role != "A" {
-    if err != nil {
-      logger.Printf("Error in adminStopCamera trying to check session! Error: %s\n", err.Error())
-    }
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
-    return
-  }
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminStopCamera trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
 
-  rows, err := db.Query("SELECT schools.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
+	rows, err := db.Query("SELECT schools.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
 
-  if err != nil {
-    logger.Printf("Error in adminStopCamera trying to query needed data for the camera! Error: %s\n", err.Error())
-  }
-  if !rows.Next() {
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Couldn't find camera id in database!"}`))
-    return
-  }
-  defer rows.Close()
+	if err != nil {
+		logger.Printf("Error in adminStopCamera trying to query needed data for the camera! Error: %s\n", err.Error())
+	}
+	if !rows.Next() {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Couldn't find camera id in database!"}`))
+		return
+	}
+	defer rows.Close()
 
-  var schoolAddress string
+	var schoolAddress string
 
-  err = rows.Scan(&schoolAddress)
+	err = rows.Scan(&schoolAddress)
 
-  if err != nil {
-    logger.Printf("Error in adminStopCamera trying to scan rows for data! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
-    return
-  }
+	if err != nil {
+		logger.Printf("Error in adminStopCamera trying to scan rows for data! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
+		return
+	}
 
-  client := new(http.Client)
-  response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
+	client := new(http.Client)
+	response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
 
-  if err != nil {
-    logger.Printf("Error in adminStopCamera trying to request that the remote server stops the camera! Error: %s\n", err.Error())
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Error stopping camera feed"}`))
-    return
-  }
+	if err != nil {
+		logger.Printf("Error in adminStopCamera trying to request that the remote server stops the camera! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error stopping camera feed"}`))
+		return
+	}
 
-  body, err := ioutil.ReadAll(response.Body)
-  logger.Printf("Response received while stopping camera: %s\n", string(body))
-  if err != nil {
-    logger.Printf("Error in adminStop reading body from the request! Error: %s\n", err.Error())
-  }
-  if strings.Split(string(body), ";")[0] != "true" {
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
-    return
-  }
+	body, err := ioutil.ReadAll(response.Body)
+	logger.Printf("Response received while stopping camera: %s\n", string(body))
+	if err != nil {
+		logger.Printf("Error in adminStop reading body from the request! Error: %s\n", err.Error())
+	}
+	if strings.Split(string(body), ";")[0] != "true" {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
+		return
+	}
 
-  w.WriteHeader(http.StatusOK)
-  w.Write([]byte(`{"status": true, "err": "Camera stopped"}`))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": "Camera stopped"}`))
 }
 
 func adminStopAll(w http.ResponseWriter, r *http.Request) {
-  w.Header().Set("Access-Control-Allow-Origin", "*")
-  w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
-  query := r.URL.Query()
+	query := r.URL.Query()
 
-  var (
-    session string
-    sid string
-  )
+	var (
+		session string
+		sid     string
+	)
 
-  if query["sid"] == nil || query["session"] == nil {
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
-    return
-  }
+	if query["sid"] == nil || query["session"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
 
-  session = query["session"][0]
-  sid = query["sid"][0]
+	session = query["session"][0]
+	sid = query["sid"][0]
 
-  if role, err := checkSession(sid, session); role != "A" {
-    if err != nil {
-      logger.Printf("Error in adminStopAll trying to check session! Error: %s\n", err.Error())
-    }
-    w.WriteHeader(http.StatusBadRequest)
-    w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
-    return
-  }
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminStopAll trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
 
-  rows, err := db.Query("SELECT * FROM cameras WHERE sid=? AND streaming=1;", sid)
+	rows, err := db.Query("SELECT schools.address, cameras.id FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=?;", sid)
 
-  if err != nil {
-    logger.Printf("Error in adminStopAll trying to query needed data for the camera! Error: %s\n", err.Error())
-  }
+	if err != nil {
+		logger.Printf("Error in adminStopAll trying to query needed data for the camera! Error: %s\n", err.Error())
+	}
 
-  if !rows.Next() {
-    w.WriteHeader(http.StatusOK)
-    w.Write([]byte(`{"status": true, "err": "All cameras are already stopped, or no cameras in database!"}`))
-    return
-  }
+	updated := false
 
-  rows.Close()
+	defer rows.Close()
 
-  rows, err = db.Query("SELECT schools.address, cameras.id FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.streaming=1;", sid)
+	for rows.Next() {
+		updated = true
 
-  if err != nil {
-    logger.Printf("Error in adminStopAll trying to query needed data for the camera! Error: %s\n", err.Error())
-  }
+		var (
+			schoolAddress string
+			cameraId      string
+		)
 
-  updated := false
+		err = rows.Scan(&schoolAddress, &cameraId)
 
-  defer rows.Close()
+		if err != nil {
+			logger.Printf("Error in adminStopAll trying to scan rows for data! Error: %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
+			return
+		}
 
-  for rows.Next() {
-    updated = true
+		client := new(http.Client)
+		response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
 
-    var (
-      schoolAddress string
-      cameraId string
-    )
+		if err != nil {
+			logger.Printf("Error in adminStopAll trying to request that the remote server stops the camera! Error: %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Error stopping camera feed"}`))
+			return
+		}
 
-    err = rows.Scan(&schoolAddress, &cameraId)
+		body, err := ioutil.ReadAll(response.Body)
+		logger.Printf("Response received while stopping camera: %s\n", string(body))
+		if err != nil {
+			logger.Printf("Error in adminStopAll reading body from the request! Error: %s\n", err.Error())
+		}
+		if strings.Split(string(body), ";")[0] != "true" {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
+			return
+		}
+	}
 
-    if err != nil {
-      logger.Printf("Error in adminStopAll trying to scan rows for data! Error: %s\n", err.Error())
-      w.WriteHeader(http.StatusInternalServerError)
-      w.Write([]byte(`{"status": false, "err": "Could not get values from database"}`))
-      return
-    }
+	if !updated {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "No rows in database for cameras!"}`))
+		return
+	}
 
-    client := new(http.Client)
-    response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
-
-    if err != nil {
-      logger.Printf("Error in adminStopAll trying to request that the remote server stops the camera! Error: %s\n", err.Error())
-      w.WriteHeader(http.StatusInternalServerError)
-      w.Write([]byte(`{"status": false, "err": "Error stopping camera feed"}`))
-      return
-    }
-
-    body, err := ioutil.ReadAll(response.Body)
-    logger.Printf("Response received while stopping camera: %s\n", string(body))
-    if err != nil {
-      logger.Printf("Error in adminStopAll reading body from the request! Error: %s\n", err.Error())
-    }
-    if strings.Split(string(body), ";")[0] != "true" {
-      w.WriteHeader(http.StatusInternalServerError)
-      w.Write([]byte(`{"status": false, "err": "Did not get response from camera api"}`))
-      return
-    }
-  }
-
-  if !updated {
-    w.WriteHeader(http.StatusInternalServerError)
-    w.Write([]byte(`{"status": false, "err": "No rows in database for cameras!"}`))
-    return
-  }
-
-  w.WriteHeader(http.StatusOK)
-  w.Write([]byte(`{"status": true, "err": ""}`))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
 }
 
+func adminLockCamera(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	var (
+		session  string
+		sid      string
+		cameraId string
+	)
+
+	if query["sid"] == nil || query["session"] == nil || query["cameraId"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+	cameraId = query["cameraId"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminLockCamera trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
+
+	_, err := db.Query("UPDATE cameras SET locked=1 WHERE sid=? AND id=?;", sid, cameraId)
+
+	if err != nil {
+		logger.Printf("Error in adminLockCamera trying to update locked status for the camera! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error trying to lock camera!"}`))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
+}
+
+func adminUnlockCamera(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	var (
+		session  string
+		sid      string
+		cameraId string
+	)
+
+	if query["sid"] == nil || query["session"] == nil || query["cameraId"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+	cameraId = query["cameraId"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminUnlockCamera trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
+
+	_, err := db.Query("UPDATE cameras SET locked=0 WHERE sid=? AND id=?;", sid, cameraId)
+
+	if err != nil {
+		logger.Printf("Error in adminUnlockCamera trying to unlock the camera! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error trying to unlock camera!"}`))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
+}
