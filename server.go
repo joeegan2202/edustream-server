@@ -48,7 +48,7 @@ func main() {
 	r.HandleFunc("/admin/read/periods/", adminReadPeriods)
 	r.HandleFunc("/admin/lock/camera/", adminLockCamera)
 	r.HandleFunc("/admin/unlock/camera/", adminUnlockCamera)
-	r.HandleFunc("/auth/", tempAuthorize)
+	r.HandleFunc("/auth/pass/", passAuth)
 	//r.HandleFunc("/request/", requestStream) // For admins/teachers/students who are requesting a video stream
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
