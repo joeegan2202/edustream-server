@@ -683,3 +683,68 @@ func adminReadPeriods(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "periods": %s }`, jsonAccumulator)))
 	return
 }
+
+func adminReadAuth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	var session string
+	var sid string
+
+	if query["session"] == nil || query["sid"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminReadAuth trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Incorrect role for session"}`))
+		return
+	}
+
+	rows, err := db.Query("SELECT auth.pid, people.uname FROM auth INNER JOIN people ON people.id=auth.pid WHERE sid=?;", sid)
+	if err != nil {
+		logger.Printf("Error in adminReadAuth querying database for authenticated people! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get authenticated people"}`)))
+		return
+	}
+	defer rows.Close()
+
+	jsonAccumulator := "["
+
+	for rows.Next() {
+		var (
+			pid   string
+			uname string
+		)
+
+		if err := rows.Scan(&pid, &uname); err != nil {
+			logger.Printf("Error in adminReadAuth trying to scan row for auth values! Error: %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for auth values"}`)))
+			return
+		}
+
+		if jsonAccumulator != "[" {
+			jsonAccumulator += ","
+		}
+
+		jsonAccumulator += fmt.Sprintf(`{"pid": "%s", "uname": "%s"}`, pid, uname)
+	}
+
+	jsonAccumulator += "]"
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "auth": %s }`, jsonAccumulator)))
+	return
+}
