@@ -29,6 +29,15 @@ func main() {
 
 	go manageCameras()
 
+	messagePoller, err = db.Prepare("SELECT id, text FROM messages WHERE sid=? AND id>? AND room=?;")
+	if err != nil {
+		logger.Panicf("Error preparing database statements for messaging! %s\n", err.Error())
+	}
+	messagePoster, err = db.Prepare("INSERT INTO messages (sid, id, room, text) VALUES ( ?, ?+1, ?, ? );")
+	if err != nil {
+		logger.Panicf("Error preparing database statements for messaging! %s\n", err.Error())
+	}
+
 	r := mux.NewRouter()
 	r.HandleFunc("/admin/start/camera/", adminStartCamera) // Admins can start and stop cameras
 	r.HandleFunc("/admin/start/all/", adminStartAll)       // Admins can start and stop all of the available cameras
@@ -50,8 +59,10 @@ func main() {
 	r.HandleFunc("/admin/update/auth/", adminUpdateAuth)
 	r.HandleFunc("/admin/lock/camera/", adminLockCamera)
 	r.HandleFunc("/admin/unlock/camera/", adminUnlockCamera)
+	r.HandleFunc("/admin/dashboard/", adminDashboard)
 	r.HandleFunc("/auth/pass/", passAuth)
-	//r.HandleFunc("/request/", requestStream) // For admins/teachers/students who are requesting a video stream
+	r.HandleFunc("/shout/poll/", pollShout)
+	r.HandleFunc("/shout/post/", postShout)
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
 	logger.Fatal(http.ListenAndServe(":8080", r))

@@ -687,3 +687,71 @@ func adminUnlockCamera(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status": true, "err": ""}`))
 }
+
+func adminDashboard(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	var session string
+	var sid string
+
+	if query["session"] == nil || query["sid"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminDashboard trying to check session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
+
+	rows, err := db.Query("SELECT id, address, room, lastStreamed, locked FROM cameras WHERE sid=?;", sid)
+	if err != nil {
+		logger.Printf("Error in adminReadCameras querying database for cameras! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get cameras"}`)))
+		return
+	}
+	defer rows.Close()
+
+	jsonAccumulator := "["
+
+	for rows.Next() {
+		var (
+			id           string
+			address      string
+			room         string
+			lastStreamed uint64
+			locked       uint64
+		)
+
+		if err := rows.Scan(&id, &address, &room, &lastStreamed, &locked); err != nil {
+			logger.Printf("Error in adminReadCameras trying to scan row for camera values! Error: %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for camera values"}`)))
+			return
+		}
+
+		if jsonAccumulator != "[" {
+			jsonAccumulator += ","
+		}
+
+		jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "lastStreamed": %d, "locked": %d}`, id, address, room, lastStreamed, locked)
+	}
+
+	jsonAccumulator += "]"
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "cameras": %s }`, jsonAccumulator)))
+	return
+}
