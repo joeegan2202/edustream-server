@@ -64,7 +64,6 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 		send := false
 
 		for rows.Next() {
-			fmt.Println("Found another row!")
 			send = true
 			var (
 				id   uint64
@@ -81,8 +80,9 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 
 			if jsonAccumulator == "[" {
 				jsonAccumulator += fmt.Sprintf(`{"id": %d, "body": %s}`, id, text)
+			} else {
+				jsonAccumulator += fmt.Sprintf(`,{"id": %d, "body": %s}`, id, text)
 			}
-			jsonAccumulator += fmt.Sprintf(`,{"id": %d, "body": %s}`, id, text)
 		}
 
 		jsonAccumulator += "]"
