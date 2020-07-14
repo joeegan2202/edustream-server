@@ -29,11 +29,13 @@ func main() {
 
 	go manageCameras()
 
-	messagePoller, err = db.Prepare("SELECT id, text FROM messages WHERE sid=? AND id>? AND room=?;")
+	// Requires (sid, lastId, sessionid, sid)
+	messagePoller, err = db.Prepare("SELECT id, text FROM messages WHERE sid=? AND id>? AND room=(SELECT classes.room FROM sessions INNER JOIN people ON sessions.uname=people.uname INNER JOIN roster ON people.id=roster.pid INNER JOIN classes ON roster.cid=classes.id INNER JOIN periods ON classes.period=periods.code WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND sessions.id=? AND sessions.sid=? );")
 	if err != nil {
 		logger.Panicf("Error preparing database statements for messaging! %s\n", err.Error())
 	}
-	messagePoster, err = db.Prepare("INSERT INTO messages (sid, room, text) VALUES ( ?, ?, ? );")
+	// Requires (sid, sessionid, sid, text)
+	messagePoster, err = db.Prepare(`INSERT INTO messages (sid, room, text) VALUES (?, (SELECT classes.room FROM sessions INNER JOIN people ON sessions.uname=people.uname INNER JOIN roster ON people.id=roster.pid INNER JOIN classes ON roster.cid=classes.id INNER JOIN periods ON classes.period=periods.code WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND sessions.id=? AND sessions.sid=? ), ? );`)
 	if err != nil {
 		logger.Panicf("Error preparing database statements for messaging! %s\n", err.Error())
 	}
