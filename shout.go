@@ -57,6 +57,8 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		defer rows.Close()
+
 		jsonAccumulator := "["
 
 		send := false
