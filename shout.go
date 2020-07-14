@@ -79,9 +79,9 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 			}
 
 			if jsonAccumulator == "[" {
-				jsonAccumulator += fmt.Sprintf(`{"id": %d, "text": "%s"}`, id, text)
+				jsonAccumulator += fmt.Sprintf(`{"id": %d, "body": %s}`, id, text)
 			}
-			jsonAccumulator += fmt.Sprintf(`,{"id": %d, "text": "%s"}`, id, text)
+			jsonAccumulator += fmt.Sprintf(`,{"id": %d, "body": %s}`, id, text)
 		}
 
 		jsonAccumulator += "]"
