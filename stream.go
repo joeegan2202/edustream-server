@@ -104,7 +104,7 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 
 		room := query["room"][0]
 
-		row := db.QueryRow("SELECT classes.name, periods.code FROM classes INNER JOIN periods.code=classes.period WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND periods.sid=? AND classes.room=?;", session, sid, room)
+		row := db.QueryRow("SELECT classes.name, periods.code FROM classes INNER JOIN periods ON periods.code=classes.period WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND periods.sid=? AND classes.room=?;", session, sid, room)
 
 		var (
 			cname  string
