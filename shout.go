@@ -112,9 +112,8 @@ func postShout(w http.ResponseWriter, r *http.Request) {
 	var session string
 	var sid string
 	var room string
-	var lastId int
 
-	if query["session"] == nil || query["lastId"] == nil || query["room"] == nil || query["sid"] == nil {
+	if query["session"] == nil || query["room"] == nil || query["sid"] == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
 		return
@@ -123,13 +122,6 @@ func postShout(w http.ResponseWriter, r *http.Request) {
 	session = query["session"][0]
 	sid = query["sid"][0]
 	room = query["room"][0]
-	lastId, err := strconv.Atoi(query["lastId"][0])
-
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"status": false, "err": "Incorrect format for last message id!"}`))
-		return
-	}
 
 	if _, err := checkSession(sid, session); err != nil {
 		logger.Printf("Error in postShout trying to check session! Error: %s\n", err.Error())
@@ -147,7 +139,7 @@ func postShout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = messagePoster.Query(sid, lastId, room, text)
+	_, err = messagePoster.Exec(sid, room, text)
 
 	if err != nil {
 		logger.Printf("Error trying to post message! %s\n", err.Error())

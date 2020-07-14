@@ -33,7 +33,7 @@ func main() {
 	if err != nil {
 		logger.Panicf("Error preparing database statements for messaging! %s\n", err.Error())
 	}
-	messagePoster, err = db.Prepare("INSERT INTO messages (sid, id, room, text) VALUES ( ?, ?+1, ?, ? );")
+	messagePoster, err = db.Prepare("INSERT INTO messages (sid, room, text) VALUES ( ?, ?, ? );")
 	if err != nil {
 		logger.Panicf("Error preparing database statements for messaging! %s\n", err.Error())
 	}

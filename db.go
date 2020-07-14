@@ -79,4 +79,5 @@ func createTables(db *sql.DB) {
 	db.Exec("CREATE TABLE sessions ( sid CHAR(64) NOT NULL, id CHAR(64) NOT NULL, time INT NOT NULL, uname VARCHAR(20) NOT NULL, PRIMARY KEY (id), FOREIGN KEY(sid) REFERENCES schools(id) );")
 	db.Exec("CREATE TABLE usage ( sid CHAR(64) NOT NULL, bytes BIGINT NOT NULL, FOREIGN KEY (sid) REFERENCES schools(id) );")
 	db.Exec("CREATE TABLE auth ( sid CHAR(64) NOT NULL, pid CHAR(64) NOT NULL, password CHAR(64) NOT NULL, FOREIGN KEY (sid) REFERENCES schools(id), FOREIGN KEY (pid) REFERENCES people(id) );")
+	db.Exec("CREATE TABLE messages ( sid CHAR(64) NOT NULL, id INT NOT NULL AUTO_INCREMENT, room VARCHAR(20) NOT NULL, FOREIGN KEY (sid) REFERENCES schools(id) );")
 }
