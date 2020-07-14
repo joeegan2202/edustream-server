@@ -64,6 +64,7 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 		send := false
 
 		for rows.Next() {
+			fmt.Println("Found another row!")
 			send = true
 			var (
 				id   uint64
