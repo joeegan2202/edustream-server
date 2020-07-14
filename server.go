@@ -65,6 +65,7 @@ func main() {
 	r.HandleFunc("/auth/pass/", passAuth)
 	r.HandleFunc("/shout/poll/", pollShout)
 	r.HandleFunc("/shout/post/", postShout)
+	r.HandleFunc("/info/", streamInfo)
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
 	logger.Fatal(http.ListenAndServe(":8080", r))
