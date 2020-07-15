@@ -89,6 +89,8 @@ func adminImportPeople(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		defer rows.Close()
+
 		if rows.Next() {
 			_, err := db.Exec("UPDATE people SET uname=?, fname=?, lname=?, role=? WHERE sid=? AND id=?;", record[indices[0]], record[indices[1]], record[indices[2]], record[indices[3]], sid, record[indices[4]])
 
@@ -192,6 +194,8 @@ func adminImportClasses(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(`{"status": false, "err": "Error trying to query database with records!"}`))
 			return
 		}
+
+		defer rows.Close()
 
 		if rows.Next() {
 			_, err := db.Exec("UPDATE classes SET name=?, room=?, period=? WHERE sid=? AND id=?;", record[indices[0]], record[indices[1]], record[indices[2]], sid, record[indices[3]])
@@ -297,6 +301,8 @@ func adminImportRoster(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(`{"status": false, "err": "Error trying to query database with records!"}`))
 			return
 		}
+
+		defer rows.Close()
 
 		if !rows.Next() {
 			updated, err := update.Exec(sid, record[indices[1]], record[indices[0]])

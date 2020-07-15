@@ -57,6 +57,7 @@ func adminCreateCamera(w http.ResponseWriter, r *http.Request) {
 	if errRow != nil {
 		logger.Printf("Error in adminCreateCamera checking for duplicated camera! Error: %s\n", err.Error())
 	}
+	defer row.Close()
 	if row.Next() {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera with address or room code already created"}`)))
@@ -189,6 +190,7 @@ func adminUpdateCamera(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Printf("Error in adminUpdateCamera trying to query database for requested camera! Error: %s\n", err.Error())
 	}
+	defer row.Close()
 	if !row.Next() {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera to update does not exist!"}`)))
@@ -242,6 +244,7 @@ func adminDeleteCamera(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Printf("Error in adminDeleteCamera trying to query database for requested camera! Error: %s\n", err.Error())
 	}
+	defer row.Close()
 	if !row.Next() {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Camera does not exist"}`)))

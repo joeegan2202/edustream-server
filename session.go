@@ -67,6 +67,8 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer rows.Close()
+
 	var dbpass string
 	var role string
 
