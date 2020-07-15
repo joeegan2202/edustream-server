@@ -10,6 +10,7 @@ import (
 )
 
 var messagePoller *sql.Stmt
+var messageClearer *sql.Stmt
 var messagePoster *sql.Stmt
 
 func pollShout(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +43,15 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 		logger.Printf("Error in pollShout trying to check session! Error: %s\n", err.Error())
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
+
+	_, err = messageClearer.Exec()
+
+	if err != nil {
+		logger.Printf("Error in pollShout trying to clear old messages! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Could not clear old messages!"}`)))
 		return
 	}
 
