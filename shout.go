@@ -148,7 +148,7 @@ func postShout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = messagePoster.Exec(sid, session, sid, text)
+	_, err = messagePoster.Exec(sid, text, session, sid)
 
 	if err != nil {
 		logger.Printf("Error trying to post message! %s\n", err.Error())

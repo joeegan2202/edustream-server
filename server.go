@@ -39,8 +39,8 @@ func main() {
 	if err != nil {
 		logger.Panicf("Error preparing database statements for messaging! %s\n", err.Error())
 	}
-	// Requires (sid, sessionid, sid, text)
-	messagePoster, err = db.Prepare(`INSERT INTO messages (sid, room, etime, text) VALUES (?, (SELECT classes.room, periods.etime FROM sessions INNER JOIN people ON sessions.uname=people.uname INNER JOIN roster ON people.id=roster.pid INNER JOIN classes ON roster.cid=classes.id INNER JOIN periods ON classes.period=periods.code WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND sessions.id=? AND sessions.sid=? ), ? );`)
+	// Requires (sid, text, sessionid, sid)
+	messagePoster, err = db.Prepare(`INSERT INTO messages (sid, text, room, etime) SELECT ?, ?, classes.room, periods.etime FROM sessions INNER JOIN people ON sessions.uname=people.uname INNER JOIN roster ON people.id=roster.pid INNER JOIN classes ON roster.cid=classes.id INNER JOIN periods ON classes.period=periods.code WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND sessions.id=? AND sessions.sid=?;`)
 	if err != nil {
 		logger.Panicf("Error preparing database statements for messaging! %s\n", err.Error())
 	}
