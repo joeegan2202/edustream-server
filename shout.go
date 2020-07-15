@@ -67,8 +67,6 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		defer rows.Close()
-
 		jsonAccumulator := "["
 
 		send := false
@@ -85,6 +83,7 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 				logger.Printf("Error trying to scan rows for messages! %s\n", err.Error())
 				w.WriteHeader(http.StatusInternalServerError)
 				fmt.Fprintf(w, "Error trying to scan rows for messages!")
+				rows.Close()
 				return
 			}
 
@@ -100,8 +99,11 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 		if send {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(fmt.Sprintf(`{"status": true, "err": "", "shouts": %s}`, jsonAccumulator)))
+			rows.Close()
 			return
 		}
+
+		rows.Close()
 
 		<-wait
 	}

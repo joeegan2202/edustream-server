@@ -298,12 +298,12 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Printf("Error in adminStartCamera trying to query needed data for the camera! Error: %s\n", err.Error())
 	}
+	defer rows.Close()
 	if !rows.Next() {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"status": false, "err": "Couldn't find camera id in database!"}`))
 		return
 	}
-	defer rows.Close()
 
 	var (
 		schoolAddress string
@@ -469,12 +469,12 @@ func adminStopCamera(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Printf("Error in adminStopCamera trying to query needed data for the camera! Error: %s\n", err.Error())
 	}
+	defer rows.Close()
 	if !rows.Next() {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(`{"status": false, "err": "Couldn't find camera id in database!"}`))
 		return
 	}
-	defer rows.Close()
 
 	var schoolAddress string
 

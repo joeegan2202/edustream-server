@@ -30,13 +30,13 @@ func checkSession(sid, session string) (string, error) {
 		return "", err
 	}
 
+	defer rows.Close()
+
 	now := time.Now().Unix()
 	if sessionTime < now-(30*60) {
 		db.Exec("DELETE FROM sessions WHERE sid=? AND id=?;", sid, session)
 		return "", fmt.Errorf("Session: %s, too old! %d seconds too old.", session, now-sessionTime-(30*60))
 	}
-
-	rows.Close()
 
 	row := db.QueryRow("SELECT role FROM people WHERE sid=? AND uname=?;", sid, uname)
 
