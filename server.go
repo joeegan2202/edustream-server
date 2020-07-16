@@ -71,6 +71,7 @@ func main() {
 	r.HandleFunc("/shout/poll/", pollShout)
 	r.HandleFunc("/shout/post/", postShout)
 	r.HandleFunc("/info/", streamInfo)
+	r.HandleFunc("/check/", handleCheck)
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
 	logger.Fatal(http.ListenAndServe(":8080", r))
@@ -186,4 +187,36 @@ func manageCameras() {
 		rows.Close()
 		<-wait
 	}
+}
+
+func handleCheck(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	if query["session"] == nil || query["sid"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Incorrect parameters given!"}`))
+		return
+	}
+
+	var (
+		session string
+		sid     string
+	)
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+
+	role, err := checkSession(sid, session)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "Error while checking session!"}`))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `{"status": true, "err": "", "role": "%s"}`, role)
 }
