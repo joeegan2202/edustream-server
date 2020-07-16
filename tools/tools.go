@@ -6,22 +6,18 @@ import (
 )
 
 func main() {
-  switch os.Args[1] {
-  case "genkey":
-  case "-genkey":
-  case "--genkey":
-    generateKey()
-    break
-  case "help":
-  case "-help":
-  case "--help":
-    printHelp()
-    break
-  }
+	switch os.Args[1] {
+	case "genkey", "-genkey", "--genkey":
+		generateKey()
+	case "teacher", "-teacher", "--teacher":
+		teacherRoster()
+	case "help", "-help", "--help":
+		printHelp()
+	}
 }
 
 func printHelp() {
-  fmt.Println(`EduStream Management Tools:
+	fmt.Println(`EduStream Management Tools:
   Usage: tools (tool) [options]
   Tools:
   --help - Prints this help page
