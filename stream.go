@@ -104,6 +104,70 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch role {
+	case "A":
+		if query["room"] == nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+			return
+		}
+
+		room := query["room"][0]
+
+		row := db.QueryRow("SELECT classes.name, periods.code FROM classes INNER JOIN periods ON periods.code=classes.period WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND periods.sid=? AND classes.room=?;", sid, room)
+
+		var (
+			cname  string
+			period string
+		)
+
+		err = row.Scan(&cname, &period)
+
+		if err != nil {
+			logger.Printf("Error in streamInfo trying to scan for information! Error: %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for information!"}`)))
+			return
+		}
+
+		rows, err := db.Query("SELECT people.fname, people.lname FROM people INNER JOIN sessions ON sessions.uname=people.uname INNER JOIN roster ON roster.pid=people.id INNER JOIN classes ON classes.id=roster.cid WHERE classes.id=( SELECT classes.id FROM classes INNER JOIN roster on classes.id=roster.cid INNER JOIN people ON people.id=roster.pid INNER JOIN periods ON classes.period=periods.code WHERE classes.room=? AND people.sid=? AND periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() ) AND sessions.time>unix_timestamp()-60;", room, sid)
+
+		if err != nil {
+			logger.Printf("Error in streamInfo trying to scan for student attendance! Error: %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for student attendance!"}`)))
+			return
+		}
+
+		defer rows.Close()
+
+		jsonAccumulator := "["
+
+		for rows.Next() {
+			var (
+				fname string
+				lname string
+			)
+
+			err = rows.Scan(&fname, &lname)
+
+			if err != nil {
+				logger.Printf("Error in streamInfo trying to scan names for student attendance! Error: %s\n", err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan names for student attendance!"}`)))
+				return
+			}
+
+			if jsonAccumulator == "[" {
+				jsonAccumulator += fmt.Sprintf("\"%s %s\"", fname, lname)
+			} else {
+				jsonAccumulator += fmt.Sprintf(",\"%s %s\"", fname, lname)
+			}
+		}
+
+		jsonAccumulator += "]"
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(fmt.Sprintf(`{"status": true, "err": "", "info": {"cname": "%s", "period": "%s", "attendance": %s}}`, cname, period, jsonAccumulator)))
 	case "S":
 		row := db.QueryRow("SELECT people.fname, people.lname, classes.name, periods.code FROM sessions INNER JOIN people ON sessions.uname=people.uname INNER JOIN roster ON people.id=roster.pid INNER JOIN classes ON roster.cid=classes.id INNER JOIN periods ON classes.period=periods.code WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND sessions.id=? AND sessions.sid=?;", session, sid)
 
@@ -125,7 +189,7 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(fmt.Sprintf(`{"status": true, "err": "", "info": {"fname": "%s", "lname": "%s", "cname": "%s", "period": "%s"}}`, fname, lname, cname, period)))
-	case "T", "A":
+	case "T":
 		row := db.QueryRow("SELECT people.fname, people.lname, classes.name, periods.code FROM sessions INNER JOIN people ON sessions.uname=people.uname INNER JOIN roster ON people.id=roster.pid INNER JOIN classes ON roster.cid=classes.id INNER JOIN periods ON classes.period=periods.code WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND sessions.id=? AND sessions.sid=?;", session, sid)
 
 		var (
