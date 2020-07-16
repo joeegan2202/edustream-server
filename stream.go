@@ -129,7 +129,7 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rows, err := db.Query("SELECT people.fname, people.lname FROM people INNER JOIN sessions ON sessions.uname=people.uname INNER JOIN roster ON roster.pid=people.id INNER JOIN classes ON classes.id=roster.cid WHERE classes.id=( SELECT classes.id FROM classes INNER JOIN roster on classes.id=roster.cid INNER JOIN people ON people.id=roster.pid INNER JOIN periods ON classes.period=periods.code WHERE classes.room=? AND people.sid=? AND periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() ) AND sessions.time>unix_timestamp()-60;", room, sid)
+		rows, err := db.Query("SELECT people.fname, people.lname FROM people INNER JOIN sessions ON sessions.uname=people.uname INNER JOIN roster ON roster.pid=people.id INNER JOIN classes ON classes.id=roster.cid WHERE classes.id=( SELECT classes.id FROM classes INNER JOIN periods ON classes.period=periods.code WHERE classes.room=? AND people.sid=? AND periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() ) AND sessions.time>unix_timestamp()-60;", room, sid)
 
 		if err != nil {
 			logger.Printf("Error in streamInfo trying to scan for student attendance! Error: %s\n", err.Error())
