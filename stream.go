@@ -114,6 +114,12 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 
 		room := query["room"][0]
 
+		if db.QueryRow("SELECT classes.id FROM classes INNER JOIN periods ON classes.period=periods.code WHERE classes.room=? AND classes.sid=? AND periods.stime<unix_timestamp() AND periods.etime>unix_timestamp();", room, sid).Scan(nil) != nil {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(fmt.Sprintf(`{"status": true, "err": "", "info": {"cname": "No class", "period": "No period", "attendance": []}}`)))
+			return
+		}
+
 		row := db.QueryRow("SELECT classes.name, periods.code FROM classes INNER JOIN periods ON periods.code=classes.period WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND periods.sid=? AND classes.room=?;", sid, room)
 
 		var (
@@ -130,7 +136,7 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		rows, err := db.Query("SELECT people.fname, people.lname FROM people INNER JOIN sessions ON sessions.uname=people.uname INNER JOIN roster ON roster.pid=people.id INNER JOIN classes ON classes.id=roster.cid WHERE classes.id=( SELECT classes.id FROM classes INNER JOIN periods ON classes.period=periods.code WHERE classes.room=? AND people.sid=? AND periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() ) AND sessions.time>unix_timestamp()-60;", room, sid)
+		rows, err := db.Query("SELECT people.fname, people.lname FROM people INNER JOIN sessions ON sessions.uname=people.uname INNER JOIN roster ON roster.pid=people.id INNER JOIN classes ON classes.id=roster.cid WHERE classes.id=( SELECT classes.id FROM classes INNER JOIN periods ON classes.period=periods.code WHERE classes.room=? AND classes.sid=? AND periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() ) AND sessions.time>unix_timestamp()-60;", room, sid)
 
 		if err != nil {
 			logger.Printf("Error in streamInfo trying to scan for student attendance! Error: %s\n", err.Error())
