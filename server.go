@@ -113,11 +113,11 @@ func manageCameras() {
 		for rows.Next() {
 			var (
 				schoolAddress string
-				cameraId      string
+				cameraID      string
 				cameraAddress string
 			)
 
-			err := rows.Scan(&schoolAddress, &cameraId, &cameraAddress)
+			err := rows.Scan(&schoolAddress, &cameraID, &cameraAddress)
 
 			if err != nil {
 				logger.Printf("Error trying to scan rows to automatically start cameras! %s\n", err.Error())
@@ -125,7 +125,7 @@ func manageCameras() {
 				continue
 			}
 
-			response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraId, cameraAddress))
+			response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraID, cameraAddress))
 
 			if err != nil {
 				logger.Printf("Error trying to request that the remote server starts the camera automatically! Error: %s\n", err.Error())
@@ -154,10 +154,10 @@ func manageCameras() {
 		for rows.Next() {
 			var (
 				schoolAddress string
-				cameraId      string
+				cameraID      string
 			)
 
-			err := rows.Scan(&schoolAddress, &cameraId)
+			err := rows.Scan(&schoolAddress, &cameraID)
 
 			if err != nil {
 				logger.Printf("Error trying to scan rows to automatically stop cameras! %s\n", err.Error())
@@ -165,7 +165,7 @@ func manageCameras() {
 				continue
 			}
 
-			response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
+			response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraID))
 
 			if err != nil {
 				logger.Printf("Error trying to request that the remote server stops the camera automatically! Error: %s\n", err.Error())

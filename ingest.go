@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+// IngestServer : A server for handling file ingest from deploy server
 type IngestServer struct{}
 
 func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {

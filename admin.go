@@ -274,10 +274,10 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
 	var (
 		session  string
 		sid      string
-		cameraId string
+		cameraID string
 	)
 
-	if query["sid"] == nil || query["session"] == nil || query["cameraId"] == nil {
+	if query["sid"] == nil || query["session"] == nil || query["cameraID"] == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
 		return
@@ -285,7 +285,7 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
 
 	session = query["session"][0]
 	sid = query["sid"][0]
-	cameraId = query["cameraId"][0]
+	cameraID = query["cameraID"][0]
 
 	if role, err := checkSession(sid, session); role != "A" {
 		if err != nil {
@@ -296,7 +296,7 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT schools.address, cameras.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
+	rows, err := db.Query("SELECT schools.address, cameras.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraID)
 
 	if err != nil {
 		logger.Printf("Error in adminStartCamera trying to query needed data for the camera! Error: %s\n", err.Error())
@@ -323,7 +323,7 @@ func adminStartCamera(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := new(http.Client)
-	response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraId, address))
+	response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraID, address))
 
 	if err != nil {
 		logger.Printf("Error in adminStartCamera trying to request that the remote server starts the camera! Error: %s\n", err.Error())
@@ -392,10 +392,10 @@ func adminStartAll(w http.ResponseWriter, r *http.Request) {
 		var (
 			schoolAddress string
 			address       string
-			cameraId      string
+			cameraID      string
 		)
 
-		err = rows.Scan(&schoolAddress, &address, &cameraId)
+		err = rows.Scan(&schoolAddress, &address, &cameraID)
 
 		if err != nil {
 			logger.Printf("Error in adminStartAll trying to scan rows for data! Error: %s\n", err.Error())
@@ -405,7 +405,7 @@ func adminStartAll(w http.ResponseWriter, r *http.Request) {
 		}
 
 		client := new(http.Client)
-		response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraId, address))
+		response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraID, address))
 
 		if err != nil {
 			logger.Printf("Error in adminStartAll trying to request that the remote server starts the camera! Error: %s\n", err.Error())
@@ -445,10 +445,10 @@ func adminStopCamera(w http.ResponseWriter, r *http.Request) {
 	var (
 		session  string
 		sid      string
-		cameraId string
+		cameraID string
 	)
 
-	if query["session"] == nil || query["sid"] == nil || query["cameraId"] == nil {
+	if query["session"] == nil || query["sid"] == nil || query["cameraID"] == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
 		return
@@ -456,7 +456,7 @@ func adminStopCamera(w http.ResponseWriter, r *http.Request) {
 
 	session = query["session"][0]
 	sid = query["sid"][0]
-	cameraId = query["cameraId"][0]
+	cameraID = query["cameraID"][0]
 
 	if role, err := checkSession(sid, session); role != "A" {
 		if err != nil {
@@ -467,7 +467,7 @@ func adminStopCamera(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT schools.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraId)
+	rows, err := db.Query("SELECT schools.address FROM cameras INNER JOIN schools ON cameras.sid=schools.id WHERE schools.id=? AND cameras.id=?;", sid, cameraID)
 
 	if err != nil {
 		logger.Printf("Error in adminStopCamera trying to query needed data for the camera! Error: %s\n", err.Error())
@@ -491,7 +491,7 @@ func adminStopCamera(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := new(http.Client)
-	response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
+	response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraID))
 
 	if err != nil {
 		logger.Printf("Error in adminStopCamera trying to request that the remote server stops the camera! Error: %s\n", err.Error())
@@ -559,10 +559,10 @@ func adminStopAll(w http.ResponseWriter, r *http.Request) {
 
 		var (
 			schoolAddress string
-			cameraId      string
+			cameraID      string
 		)
 
-		err = rows.Scan(&schoolAddress, &cameraId)
+		err = rows.Scan(&schoolAddress, &cameraID)
 
 		if err != nil {
 			logger.Printf("Error in adminStopAll trying to scan rows for data! Error: %s\n", err.Error())
@@ -572,7 +572,7 @@ func adminStopAll(w http.ResponseWriter, r *http.Request) {
 		}
 
 		client := new(http.Client)
-		response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraId))
+		response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraID))
 
 		if err != nil {
 			logger.Printf("Error in adminStopAll trying to request that the remote server stops the camera! Error: %s\n", err.Error())
@@ -612,10 +612,10 @@ func adminLockCamera(w http.ResponseWriter, r *http.Request) {
 	var (
 		session  string
 		sid      string
-		cameraId string
+		cameraID string
 	)
 
-	if query["sid"] == nil || query["session"] == nil || query["cameraId"] == nil {
+	if query["sid"] == nil || query["session"] == nil || query["cameraID"] == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
 		return
@@ -623,7 +623,7 @@ func adminLockCamera(w http.ResponseWriter, r *http.Request) {
 
 	session = query["session"][0]
 	sid = query["sid"][0]
-	cameraId = query["cameraId"][0]
+	cameraID = query["cameraID"][0]
 
 	if role, err := checkSession(sid, session); role != "A" {
 		if err != nil {
@@ -634,7 +634,7 @@ func adminLockCamera(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := db.Query("UPDATE cameras SET locked=1 WHERE sid=? AND id=?;", sid, cameraId)
+	_, err := db.Query("UPDATE cameras SET locked=1 WHERE sid=? AND id=?;", sid, cameraID)
 
 	if err != nil {
 		logger.Printf("Error in adminLockCamera trying to update locked status for the camera! Error: %s\n", err.Error())
@@ -656,10 +656,10 @@ func adminUnlockCamera(w http.ResponseWriter, r *http.Request) {
 	var (
 		session  string
 		sid      string
-		cameraId string
+		cameraID string
 	)
 
-	if query["sid"] == nil || query["session"] == nil || query["cameraId"] == nil {
+	if query["sid"] == nil || query["session"] == nil || query["cameraID"] == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
 		return
@@ -667,7 +667,7 @@ func adminUnlockCamera(w http.ResponseWriter, r *http.Request) {
 
 	session = query["session"][0]
 	sid = query["sid"][0]
-	cameraId = query["cameraId"][0]
+	cameraID = query["cameraID"][0]
 
 	if role, err := checkSession(sid, session); role != "A" {
 		if err != nil {
@@ -678,7 +678,7 @@ func adminUnlockCamera(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := db.Query("UPDATE cameras SET locked=0 WHERE sid=? AND id=?;", sid, cameraId)
+	_, err := db.Query("UPDATE cameras SET locked=0 WHERE sid=? AND id=?;", sid, cameraID)
 
 	if err != nil {
 		logger.Printf("Error in adminUnlockCamera trying to unlock the camera! Error: %s\n", err.Error())

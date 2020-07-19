@@ -21,9 +21,9 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 
 	var session string
 	var sid string
-	var lastId int
+	var lastID int
 
-	if query["session"] == nil || query["lastId"] == nil || query["sid"] == nil {
+	if query["session"] == nil || query["lastID"] == nil || query["sid"] == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
 		return
@@ -31,7 +31,7 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 
 	session = query["session"][0]
 	sid = query["sid"][0]
-	lastId, err := strconv.Atoi(query["lastId"][0])
+	lastID, err := strconv.Atoi(query["lastID"][0])
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -58,7 +58,7 @@ func pollShout(w http.ResponseWriter, r *http.Request) {
 	for {
 		wait := time.After(10 * time.Second)
 
-		rows, err := messagePoller.Query(sid, lastId, session, sid)
+		rows, err := messagePoller.Query(sid, lastID, session, sid)
 
 		if err != nil {
 			logger.Printf("Error trying to poll for messages! %s\n", err.Error())

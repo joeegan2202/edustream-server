@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// StreamServer Type for the server streaming files
 type StreamServer struct{}
 
 func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +126,7 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logger.Printf("Error in streamInfo trying to scan for information! Error: %s\n", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for information!"}`)))
+			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for admin information!"}`)))
 			return
 		}
 
@@ -183,7 +184,7 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logger.Printf("Error in streamInfo trying to scan for information! Error: %s\n", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for information!"}`)))
+			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for student information!"}`)))
 			return
 		}
 
@@ -204,7 +205,7 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logger.Printf("Error in streamInfo trying to scan for information! Error: %s\n", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for information!"}`)))
+			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for teacher information!"}`)))
 			return
 		}
 
