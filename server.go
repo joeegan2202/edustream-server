@@ -117,6 +117,8 @@ func manageCameras() {
 				continue
 			}
 
+			fmt.Printf("Data found for starting camera: CameraID: %s, Camera Address: %s\n", cameraID, cameraAddress)
+
 			response, err := client.Get(fmt.Sprintf("%s/add/?id=%s&address=%s", schoolAddress, cameraID, cameraAddress))
 
 			if err != nil {
@@ -156,6 +158,8 @@ func manageCameras() {
 				rows.Close()
 				continue
 			}
+
+			fmt.Printf("Data found for stopping camera: CameraID: %s\n", cameraID)
 
 			response, err := client.Get(fmt.Sprintf("%s/stop/?id=%s", schoolAddress, cameraID))
 

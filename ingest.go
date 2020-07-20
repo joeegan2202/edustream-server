@@ -32,8 +32,6 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	signature := query["signature"][0]
 
-	fmt.Println(r.URL.EscapedPath())
-
 	cid := r.URL.EscapedPath()[:strings.LastIndex(r.URL.EscapedPath(), "/")]
 	filename := r.URL.EscapedPath()[strings.LastIndex(r.URL.EscapedPath(), "/"):]
 
@@ -73,8 +71,6 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	bytesRead, err := io.ReadAtLeast(r.Body, signData, 100)
 
-	fmt.Println(bytesRead)
-
 	if err != nil {
 		logger.Printf("Error trying to read bytes for signing! %s\n", err.Error())
 	}
@@ -100,8 +96,6 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dir := fmt.Sprintf("%s/%s/%s", os.Getenv("FS_PATH"), sid, room)
-
-	fmt.Println(fmt.Sprintf("%s/%s", dir, filename))
 
 	os.MkdirAll(dir, 0755)
 	file, err := os.OpenFile(fmt.Sprintf("%s/%s", dir, filename), os.O_RDWR|os.O_CREATE, 0755)
