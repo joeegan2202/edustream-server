@@ -89,21 +89,13 @@ func getSchools(w http.ResponseWriter, r *http.Request) {
 }
 
 func manageCameras() {
-	selectq, err := db.Prepare("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime<? AND periods.etime>?) AND cameras.lastStreamed<? AND cameras.locked=1;")
-	if err != nil {
-		logger.Panicf("Couldn't initialize starting select statement! %s\n", err.Error())
-	}
-	selectw, err := db.Prepare("SELECT schools.address, cameras.id FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime>? OR periods.etime<?) AND cameras.lastStreamed>? AND cameras.locked=1;")
-	if err != nil {
-		logger.Panicf("Couldn't initialize stopping select statement! %s\n", err.Error())
-	}
 	client := new(http.Client)
 
 	for {
 		wait := time.After(5 * time.Second)
 
 		now := time.Now().Unix()
-		rows, err := selectq.Query(now, now, now-60)
+		rows, err := db.Query("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime<? AND periods.etime>?) AND cameras.lastStreamed<? AND cameras.locked=1;", now, now, now-60)
 
 		if err != nil {
 			logger.Printf("Error trying to query database to automatically start cameras! %s\n", err.Error())
@@ -144,7 +136,7 @@ func manageCameras() {
 			}
 		}
 
-		rows, err = selectw.Query(now, now, now-60)
+		rows, err = db.Query("SELECT schools.address, cameras.id FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime>? OR periods.etime<?) AND cameras.lastStreamed>? AND cameras.locked=1;", now, now, now-60)
 
 		if err != nil {
 			logger.Printf("Error trying to query database to automatically stop cameras! %s\n", err.Error())
