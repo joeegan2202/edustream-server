@@ -114,7 +114,11 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 
 		room := query["room"][0]
 
-		if db.QueryRow("SELECT classes.id FROM classes INNER JOIN periods ON classes.period=periods.code WHERE classes.room=? AND classes.sid=? AND periods.stime<unix_timestamp() AND periods.etime>unix_timestamp();", room, sid).Scan(nil) != nil {
+		var temp string
+
+		defer fmt.Printf("CID found: %s\n", temp)
+
+		if db.QueryRow("SELECT classes.id FROM classes INNER JOIN periods ON classes.period=periods.code WHERE classes.room=? AND classes.sid=? AND periods.stime<unix_timestamp() AND periods.etime>unix_timestamp();", room, sid).Scan(&temp) != nil {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(fmt.Sprintf(`{"status": true, "err": "", "info": {"cname": "No class", "period": "No period", "attendance": []}}`)))
 			return
