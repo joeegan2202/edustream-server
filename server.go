@@ -94,8 +94,7 @@ func manageCameras() {
 	for {
 		wait := time.After(5 * time.Second)
 
-		now := time.Now().Unix()
-		rows, err := db.Query("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime<? AND periods.etime>?) AND cameras.lastStreamed<? AND cameras.locked=1;", now, now, now-60)
+		rows, err := db.Query("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime<unix_timestamp() AND periods.etime>unix_timestamp()) AND cameras.lastStreamed<unix_timestamp()-60 AND cameras.locked=1;")
 
 		if err != nil {
 			logger.Printf("Error trying to query database to automatically start cameras! %s\n", err.Error())
@@ -138,7 +137,10 @@ func manageCameras() {
 			}
 		}
 
-		rows, err = db.Query("SELECT schools.address, cameras.id FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime>? OR periods.etime<?) AND cameras.lastStreamed>? AND cameras.locked=1;", now, now, now-60)
+		rows, err = db.Query(`SELECT schools.address, outcam.id FROM cameras outcam INNER JOIN schools ON schools.id=outcam.sid
+	WHERE outcam.lastStreamed>unix_timestamp()-60 AND outcam.locked=1 AND (SELECT COUNT(cameras.id) FROM cameras
+    LEFT JOIN classes ON cameras.room=classes.room INNER JOIN schools ON schools.id=cameras.sid LEFT JOIN periods ON periods.code=classes.period
+	WHERE cameras.lastStreamed>unix_timestamp()-60 AND cameras.locked=1 AND cameras.room=outcam.room AND (periods.stime<unix_timestamp() OR periods.etime>unix_timestamp()) )=0;`)
 
 		if err != nil {
 			logger.Printf("Error trying to query database to automatically stop cameras! %s\n", err.Error())
