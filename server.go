@@ -74,8 +74,7 @@ func main() {
 	r.HandleFunc("/check/", handleCheck)
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
-	certpath, err := os.Getwd()
-	logger.Fatal(http.ListenAndServeTLS(":443", fmt.Sprintf("%s/public.crt", certpath), fmt.Sprintf("%s/private.key", certpath), r))
+	logger.Fatal(http.ListenAndServeTLS(":443", "public.crt", "private.key", r))
 }
 
 func getSchools(w http.ResponseWriter, r *http.Request) {
