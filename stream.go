@@ -13,6 +13,7 @@ type StreamServer struct{}
 
 func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Cache-Control", "no-cache")
 
 	sid := strings.Split(r.URL.Path, "/")[0]
 	session := strings.Split(r.URL.Path, "/")[1]
