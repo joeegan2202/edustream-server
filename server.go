@@ -74,7 +74,6 @@ func main() {
 	r.HandleFunc("/check/", handleCheck)
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
-	go logger.Fatal(http.ListenAndServe(":80", r))
 	certpath, err := os.Getwd()
 	logger.Fatal(http.ListenAndServeTLS(":443", fmt.Sprintf("%s/public.crt", certpath), fmt.Sprintf("%s/private.key", certpath), r))
 }
