@@ -281,11 +281,9 @@ func adminImportRoster(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	tx, err := db.Begin()
-
-	selectq, err := tx.Prepare("SELECT * FROM roster INNER JOIN classes AS cold ON roster.cid=cold.id INNER JOIN classes AS cnew ON roster.sid=cnew.sid WHERE roster.sid=? AND cnew.id=? AND roster.pid=? AND cold.period=cnew.period;")
-	update, err := tx.Prepare("UPDATE roster INNER JOIN classes AS cold ON roster.cid=cold.id INNER JOIN classes AS cnew ON roster.sid=cnew.sid SET roster.cid=cnew.id WHERE roster.sid=? AND cnew.id=? AND roster.pid=? AND cold.period=cnew.period;")
-	insert, err := tx.Prepare("INSERT INTO roster VALUES ( ?, ?, ? );")
+	selectq, err := db.Prepare("SELECT * FROM roster INNER JOIN classes AS cold ON roster.cid=cold.id INNER JOIN classes AS cnew ON roster.sid=cnew.sid WHERE roster.sid=? AND cnew.id=? AND roster.pid=? AND cold.period=cnew.period;")
+	update, err := db.Prepare("UPDATE roster INNER JOIN classes AS cold ON roster.cid=cold.id INNER JOIN classes AS cnew ON roster.sid=cnew.sid SET roster.cid=cnew.id WHERE roster.sid=? AND cnew.id=? AND roster.pid=? AND cold.period=cnew.period;")
+	insert, err := db.Prepare("INSERT INTO roster VALUES ( ?, ?, ? );")
 	// Write rest of data to db
 	for {
 		record, err := dataSheet.Read()
@@ -302,8 +300,6 @@ func adminImportRoster(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		defer rows.Close()
-
 		if !rows.Next() {
 			updated, err := update.Exec(sid, record[indices[1]], record[indices[0]])
 
@@ -311,6 +307,7 @@ func adminImportRoster(w http.ResponseWriter, r *http.Request) {
 				logger.Printf("Error while trying to update database for import! pid: %s, cid: %s; %s\n", record[indices[0]], record[indices[1]], err.Error())
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(`{"status": false, "err": "Error trying to update database with records!"}`))
+				rows.Close()
 				return
 			}
 
@@ -321,6 +318,7 @@ func adminImportRoster(w http.ResponseWriter, r *http.Request) {
 					logger.Printf("Error trying to insert rows while importing roster! pid: %s, cid: %s; %s\n", record[indices[0]], record[indices[1]], err.Error())
 					w.WriteHeader(http.StatusInternalServerError)
 					w.Write([]byte(`{"status": false, "err": "Error trying to import roster!"}`))
+					rows.Close()
 					return
 				}
 			}
@@ -328,8 +326,6 @@ func adminImportRoster(w http.ResponseWriter, r *http.Request) {
 
 		rows.Close()
 	}
-
-	tx.Commit()
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status": true, "err": ""}`))
