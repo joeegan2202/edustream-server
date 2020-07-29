@@ -1,0 +1,12 @@
+1. Test student
+  a. Test video feed
+  b. Test shoutout
+  c. Test info
+2. Test teacher
+  a. Test video feed
+  b. Test shoutout
+  c. Test attendance and info
+3. Test admin access
+  a. Test camera CRUD
+  b. Test autostart, stop, manual start, stop, locking, and unlocking
+  c. Test all other CRUD

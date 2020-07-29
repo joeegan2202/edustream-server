@@ -842,3 +842,273 @@ func adminUpdateAuth(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status": true, "err": ""}`))
 }
+
+func adminDeletePeople(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	var session string
+	var sid string
+	var id string
+
+	if query["session"] == nil || query["sid"] == nil || query["id"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+	id = query["id"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminDeletePeople checking session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
+
+	row, err := db.Query("SELECT * FROM people WHERE sid=? AND id=?;", sid, id)
+	if err != nil {
+		logger.Printf("Error in adminDeletePeople trying to query database for requested person! Error: %s\n", err.Error())
+	}
+	defer row.Close()
+	if !row.Next() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Person does not exist"}`)))
+		return
+	}
+	_, err = db.Exec("DELETE FROM people WHERE sid=? AND id=?;", sid, id)
+
+	if err != nil {
+		logger.Printf("Error in adminDeletePeople trying to execute delete query! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error deleting person record"}`))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
+
+	return
+}
+
+func adminDeleteClasses(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	var session string
+	var sid string
+	var id string
+
+	if query["session"] == nil || query["sid"] == nil || query["id"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+	id = query["id"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminDeleteClasses checking session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
+
+	row, err := db.Query("SELECT * FROM classes WHERE sid=? AND id=?;", sid, id)
+	if err != nil {
+		logger.Printf("Error in adminDeleteClasses trying to query database for requested class! Error: %s\n", err.Error())
+	}
+	defer row.Close()
+	if !row.Next() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Class does not exist"}`)))
+		return
+	}
+	_, err = db.Exec("DELETE FROM classes WHERE sid=? AND id=?;", sid, id)
+
+	if err != nil {
+		logger.Printf("Error in adminDeleteClasses trying to execute delete query! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error deleting class record"}`))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
+
+	return
+}
+
+func adminDeleteRoster(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	var session string
+	var sid string
+	var id string
+
+	if query["session"] == nil || query["sid"] == nil || query["id"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+	id = query["id"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminDeleteRoster checking session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
+
+	row, err := db.Query("SELECT * FROM roster WHERE sid=? AND id=?;", sid, id)
+	if err != nil {
+		logger.Printf("Error in adminDeleteRoster trying to query database for requested roster! Error: %s\n", err.Error())
+	}
+	defer row.Close()
+	if !row.Next() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Roster does not exist"}`)))
+		return
+	}
+	_, err = db.Exec("DELETE FROM roster WHERE sid=? AND id=?;", sid, id)
+
+	if err != nil {
+		logger.Printf("Error in adminDeleteRoster trying to execute delete query! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error deleting roster record"}`))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
+
+	return
+}
+
+func adminDeletePeriods(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	var session string
+	var sid string
+	var id string
+
+	if query["session"] == nil || query["sid"] == nil || query["id"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+	id = query["id"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminDeletePeriods checking session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
+
+	row, err := db.Query("SELECT * FROM periods WHERE sid=? AND id=?;", sid, id)
+	if err != nil {
+		logger.Printf("Error in adminDeletePeriods trying to query database for requested period! Error: %s\n", err.Error())
+	}
+	defer row.Close()
+	if !row.Next() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Period does not exist"}`)))
+		return
+	}
+	_, err = db.Exec("DELETE FROM periods WHERE sid=? AND id=?;", sid, id)
+
+	if err != nil {
+		logger.Printf("Error in adminDeletePeriods trying to execute delete query! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error deleting period record"}`))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
+
+	return
+}
+
+func adminDeleteAuth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	var session string
+	var sid string
+	var id string
+
+	if query["session"] == nil || query["sid"] == nil || query["id"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Missing parameters"}`))
+		return
+	}
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+	id = query["id"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			logger.Printf("Error in adminDeleteAuth checking session! Error: %s\n", err.Error())
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Incorrect role for session"}`)))
+		return
+	}
+
+	row, err := db.Query("SELECT * FROM auth WHERE sid=? AND id=?;", sid, id)
+	if err != nil {
+		logger.Printf("Error in adminDeleteAuth trying to query database for requested auth! Error: %s\n", err.Error())
+	}
+	defer row.Close()
+	if !row.Next() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Auth does not exist"}`)))
+		return
+	}
+	_, err = db.Exec("DELETE FROM auth WHERE sid=? AND id=?;", sid, id)
+
+	if err != nil {
+		logger.Printf("Error in adminDeleteAuth trying to execute delete query! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Error deleting auth record"}`))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
+
+	return
+}

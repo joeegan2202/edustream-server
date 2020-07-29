@@ -63,6 +63,11 @@ func main() {
 	r.HandleFunc("/admin/read/roster/", adminReadRoster)
 	r.HandleFunc("/admin/read/periods/", adminReadPeriods)
 	r.HandleFunc("/admin/read/auth/", adminReadAuth)
+	r.HandleFunc("/admin/delete/people/", adminDeletePeople)
+	r.HandleFunc("/admin/delete/classes/", adminDeleteClasses)
+	r.HandleFunc("/admin/delete/roster/", adminDeleteRoster)
+	r.HandleFunc("/admin/delete/periods/", adminDeletePeriods)
+	r.HandleFunc("/admin/delete/auth/", adminDeleteAuth)
 	r.HandleFunc("/admin/update/auth/", adminUpdateAuth)
 	r.HandleFunc("/admin/lock/camera/", adminLockCamera)
 	r.HandleFunc("/admin/unlock/camera/", adminUnlockCamera)
@@ -74,7 +79,7 @@ func main() {
 	r.HandleFunc("/check/", handleCheck)
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
-	logger.Fatal(http.ListenAndServeTLS(":443", "public.crt", "private.key", r))
+	logger.Fatal(http.ListenAndServe(":80", r))
 }
 
 func getSchools(w http.ResponseWriter, r *http.Request) {
