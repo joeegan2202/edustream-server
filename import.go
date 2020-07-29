@@ -644,7 +644,7 @@ func adminReadPeriods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT code, stime, etime FROM periods WHERE sid=?;", sid)
+	rows, err := db.Query("SELECT code, id, stime, etime FROM periods WHERE sid=?;", sid)
 	if err != nil {
 		logger.Printf("Error in adminReadPeriods querying database for periods! Error: %s\n", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
@@ -658,11 +658,12 @@ func adminReadPeriods(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var (
 			code  string
+			id    uint64
 			stime uint64
 			etime uint64
 		)
 
-		if err := rows.Scan(&code, &stime, &etime); err != nil {
+		if err := rows.Scan(&code, &id, &stime, &etime); err != nil {
 			logger.Printf("Error in adminReadPeriods trying to scan row for period values! Error: %s\n", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for period values"}`)))
@@ -673,7 +674,7 @@ func adminReadPeriods(w http.ResponseWriter, r *http.Request) {
 			jsonAccumulator += ","
 		}
 
-		jsonAccumulator += fmt.Sprintf(`{"code": "%s", "stime": %d, "etime": %d}`, code, stime, etime)
+		jsonAccumulator += fmt.Sprintf(`{"code": "%s", "id": "%d", "stime": %d, "etime": %d}`, code, id, stime, etime)
 	}
 
 	jsonAccumulator += "]"
