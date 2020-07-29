@@ -396,15 +396,6 @@ func adminImportPeriods(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	_, err = db.Exec("DELETE FROM periods WHERE sid=?", sid)
-
-	if err != nil {
-		logger.Printf("Error trying to clear schedule! %s\n", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"status": false, "err": "Error trying to clear schedule!"}`))
-		return
-	}
-
 	// Write rest of data to db
 	for {
 		record, err := dataSheet.Read()
@@ -412,7 +403,7 @@ func adminImportPeriods(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		_, err = db.Exec("INSERT INTO periods VALUES ( ?, ?, ?, ? );", sid, record[indices[0]], record[indices[1]], record[indices[2]])
+		_, err = db.Exec("INSERT INTO periods (sid, code, stime, etime ) VALUES ( ?, ?, ?, ? );", sid, record[indices[0]], record[indices[1]], record[indices[2]])
 
 		if err != nil {
 			logger.Printf("Error trying to insert rows while importing periods! %s\n", err.Error())
