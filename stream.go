@@ -194,8 +194,8 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			logger.Printf("Error in streamInfo trying to scan for information! Error: %s\n", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for student information!"}`)))
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(fmt.Sprintf(`{"status": true, "err": "Error in streamInfo trying to scan for student information!", "info": {"fname": "No", "lname": "Name", "cname": "No Class", "period": "No Period"}}`)))
 			return
 		}
 
@@ -215,8 +215,8 @@ func streamInfo(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			logger.Printf("Error in streamInfo trying to scan for information! Error: %s\n", err.Error())
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error in streamInfo trying to scan for teacher information!"}`)))
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(fmt.Sprintf(`{"status": true, "err": "Error in streamInfo trying to scan for teacher information!", "info": {"fname": "No", "lname": "Name", "cname": "No Class", "period": "No Period"}}`)))
 			return
 		}
 
