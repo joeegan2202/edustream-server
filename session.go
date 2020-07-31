@@ -54,12 +54,16 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT auth.password, people.role, schools.id, schools.logoURL FROM auth INNER JOIN people ON people.id=auth.pid INNER JOIN schools ON schools.id=auth.sid WHERE people.uname=?;", uname)
+	rows, err := db.Query("SELECT auth.password, people.role, schools.id, schools.banner FROM auth INNER JOIN people ON people.id=auth.pid INNER JOIN schools ON schools.id=auth.sid WHERE people.uname=?;", uname)
 
+	if err != nil {
+		logger.Printf("Error trying to get password from database! %s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, `{"status": false, "err": "Error trying to get password from database!"}`)
+		return
+	}
 	if !rows.Next() {
-		if err != nil {
-			logger.Printf("Error trying to get password from database! %s\n", err.Error())
-		}
+		logger.Printf("Error trying to get password from database! No rows!\n")
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, `{"status": false, "err": "Error trying to get password from database!"}`)
 		return
