@@ -216,7 +216,7 @@ func handleCheck(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"status": false, "Error while checking session!"}`))
+		w.Write([]byte(`{"status": false, "err": "Error while checking session!"}`))
 		return
 	}
 
