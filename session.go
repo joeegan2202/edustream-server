@@ -74,9 +74,9 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 	var dbpass string
 	var role string
 	var sid string
-	var logoURL string
+	var bannerURL string
 
-	err = rows.Scan(&dbpass, &role, &sid, &logoURL)
+	err = rows.Scan(&dbpass, &role, &sid, &bannerURL)
 
 	if err != nil {
 		logger.Printf("Error trying to scan password from database! %s\n", err.Error())
@@ -101,5 +101,5 @@ func passAuth(w http.ResponseWriter, r *http.Request) {
 	session := addSession(uname, sid)
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "session": "%s", "role": "%s", "sid": "%s", "logoURL": "%s"}`, session, role, sid, logoURL)))
+	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "session": "%s", "role": "%s", "sid": "%s", "bannerURL": "%s"}`, session, role, sid, bannerURL)))
 }
