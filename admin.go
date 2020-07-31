@@ -136,7 +136,7 @@ func adminReadCameras(w http.ResponseWriter, r *http.Request) {
 			jsonAccumulator += ","
 		}
 
-		jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "lastStreamed": %d, "locked": %d}`, id, address, room, lastStreamed, locked)
+		jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": "%s", "lastStreamed": %d, "locked": %d}`, id, address, room, lastStreamed, locked)
 	}
 
 	jsonAccumulator += "]"
