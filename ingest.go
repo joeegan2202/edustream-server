@@ -98,7 +98,7 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dir := fmt.Sprintf("%s/%s/%s", os.Getenv("FS_PATH"), sid, room)
 
 	os.MkdirAll(dir, 0755)
-	err = os.Remove(fmt.Sprintf("%s/%s", dir, filename))
+	//err = os.Remove(fmt.Sprintf("%s/%s", dir, filename))
 	if err != nil {
 		logger.Printf("Error trying to remove file ingesting! %s\n", err.Error())
 	}
