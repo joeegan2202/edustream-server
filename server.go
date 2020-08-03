@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -79,7 +80,15 @@ func main() {
 	r.HandleFunc("/check/", handleCheck)
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
-	logger.Fatal(http.ListenAndServe(":80", r))
+
+	server := http.Server{
+		Addr:    ":443",
+		Handler: r,
+		TLSConfig: &tls.Config{
+			NextProtos: []string{"h2", "http/1.1"},
+		},
+	}
+	logger.Fatal(server.ListenAndServeTLS("public.crt", "private.key").Error())
 }
 
 func getSchools(w http.ResponseWriter, r *http.Request) {
