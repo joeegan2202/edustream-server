@@ -103,7 +103,7 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger.Printf("Error trying to remove file ingesting! %s\n", err.Error())
 	}
 
-	file, err := os.OpenFile(fmt.Sprintf("%s/%s", dir, filename), os.O_RDWR|os.O_CREATE, 0755)
+	file, err := os.OpenFile(fmt.Sprintf("%s/%s", dir, filename), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 
 	if err != nil {
 		log.Fatal(err.Error())
