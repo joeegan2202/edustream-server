@@ -718,43 +718,47 @@ func adminDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.Query("SELECT id, address, room, lastStreamed, locked FROM cameras WHERE sid=?;", sid)
+	var address string
+
+	err := db.QueryRow("SELECT address FROM schools WHERE id=?;", sid).Scan(&address)
+
 	if err != nil {
-		logger.Printf("Error in adminReadCameras querying database for cameras! Error: %s\n", err.Error())
+		logger.Printf("Error in adminDashboard querying database for school address! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get school address"}`)))
+		return
+	}
+
+	//client := new(http.Client)
+
+	//response, err := client.Get(fmt.Sprintf("%s/ping"))
+
+	rows, err := db.Query("SELECT lastStreamed FROM cameras WHERE sid=?;", sid)
+	if err != nil {
+		logger.Printf("Error in adminDashboard querying database for cameras! Error: %s\n", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to get cameras"}`)))
 		return
 	}
 	defer rows.Close()
 
-	jsonAccumulator := "["
+	streamingAccumulator := 0
 
 	for rows.Next() {
-		var (
-			id           string
-			address      string
-			room         string
-			lastStreamed uint64
-			locked       uint64
-		)
+		var lastStreamed uint64
 
-		if err := rows.Scan(&id, &address, &room, &lastStreamed, &locked); err != nil {
-			logger.Printf("Error in adminReadCameras trying to scan row for camera values! Error: %s\n", err.Error())
+		if err := rows.Scan(&lastStreamed); err != nil {
+			logger.Printf("Error in adminDashboard trying to scan row for camera values! Error: %s\n", err.Error())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Failed to scan rows for camera values"}`)))
 			return
 		}
 
-		if jsonAccumulator != "[" {
-			jsonAccumulator += ","
+		if int64(lastStreamed) > time.Now().Unix()-60 {
+			streamingAccumulator++
 		}
-
-		jsonAccumulator += fmt.Sprintf(`{"id": "%s", "address": "%s", "room": %s, "lastStreamed": %d, "locked": %d}`, id, address, room, lastStreamed, locked)
 	}
 
-	jsonAccumulator += "]"
-
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "cameras": %s }`, jsonAccumulator)))
-	return
+	w.Write([]byte(fmt.Sprintf(`{"status": true, "err": false, "streaming": %d, "bandwidth": %d }`, streamingAccumulator, streamingAccumulator)))
 }
