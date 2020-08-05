@@ -59,8 +59,9 @@ func loadDatabase() *sql.DB {
 	uname := os.Getenv("DB_USER")
 	pword := os.Getenv("DB_PASS")
 	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
 
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/edustream", uname, pword, host))
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/edustream", uname, pword, host, port))
 
 	if err != nil {
 		logger.Fatal(err.Error())
