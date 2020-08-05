@@ -25,7 +25,7 @@ func main() {
 
 	db = loadDatabase()
 
-	createTables(db)
+	createTables()
 
 	go manageCameras()
 
