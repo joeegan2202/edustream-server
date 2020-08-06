@@ -79,7 +79,7 @@ func createTables() {
 	db.Exec("CREATE TABLE periods ( sid CHAR(64) NOT NULL, id INT NOT NULL AUTO_INCREMENT, code VARCHAR(10) NOT NULL, stime INT NOT NULL, etime INT NOT NULL, FOREIGN KEY(sid) REFERENCES schools(id), PRIMARY KEY(id) );")
 	db.Exec("CREATE TABLE sessions ( sid CHAR(64) NOT NULL, id CHAR(64) NOT NULL, time INT NOT NULL, uname VARCHAR(20) NOT NULL, PRIMARY KEY (id), FOREIGN KEY(sid) REFERENCES schools(id) );")
 	db.Exec("CREATE TABLE usage ( sid CHAR(64) NOT NULL, bytes BIGINT NOT NULL, PRIMARY KEY(sid), FOREIGN KEY (sid) REFERENCES schools(id) );")
-	db.Exec("CREATE TABLE auth ( sid CHAR(64) NOT NULL, pid CHAR(64) NOT NULL, password CHAR(64) NOT NULL, PRIMARY KEY(pid,sid) FOREIGN KEY (sid) REFERENCES schools(id), FOREIGN KEY (pid) REFERENCES people(id) );")
+	db.Exec("CREATE TABLE auth ( sid CHAR(64) NOT NULL, pid CHAR(64) NOT NULL, password CHAR(64) NOT NULL, PRIMARY KEY(pid,sid), FOREIGN KEY (sid) REFERENCES schools(id), FOREIGN KEY (pid) REFERENCES people(id) );")
 	db.Exec("CREATE TABLE messages ( sid CHAR(64) NOT NULL, id INT NOT NULL AUTO_INCREMENT, room VARCHAR(20) NOT NULL, text TEXT NOT NULL, etime INT NOT NULL, FOREIGN KEY (sid) REFERENCES schools(id), PRIMARY KEY (id) );")
 	db.Exec("CREATE TABLE recording ( sid CHAR(64) NOT NULL, id INT NOT NULL AUTO_INCREMENT, cid CHAR(64) NOT NULL, time INT NOT NULL, status TINYINT NOT NULL, FOREIGN KEY(sid) REFERENCES schools(id), FOREIGN KEY(cid) REFERENCES classes(id), PRIMARY KEY(id) );")
 }
