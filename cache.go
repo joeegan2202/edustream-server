@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -71,6 +72,10 @@ func insertCache(path string, file io.Reader) error {
 
 	if !(len(data) > 0) {
 		return fmt.Errorf("empty file. Not written to cache")
+	}
+
+	if strings.Split(path, ".")[1] != "ts" {
+		return nil
 	}
 
 	cfile := CachedFile{path, &data, time.Now().Unix()}
