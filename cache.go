@@ -64,6 +64,19 @@ func insertCache(path string, file io.Reader) error {
 		return nil
 	}
 
+	fi, err := os.Stat(path)
+
+	if err != nil {
+		logger.Printf("Error trying to read file info for stream caching! %s\n", err.Error())
+		io.Copy(ioutil.Discard, file)
+		return nil
+	}
+
+	if fi.ModTime().Unix() < time.Now().Unix()-180 {
+		io.Copy(ioutil.Discard, file)
+		return nil
+	}
+
 	data, err := ioutil.ReadAll(file)
 
 	if err != nil {
