@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -65,16 +66,83 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		var (
 			sid  string
-			room uint64
+			room string
 		)
 
 		err = rows.Scan(&sid, &room)
 
-		fmt.Printf("About to serve %s/%s/%d\n", os.Getenv("FS_PATH"), sid, room)
-		http.StripPrefix(fmt.Sprintf("%s/%s", sid, session), http.FileServer(http.Dir(fmt.Sprintf("%s/%s/%d", os.Getenv("FS_PATH"), sid, room)))).ServeHTTP(w, r)
+		if err != nil {
+			logger.Printf("Error trying to scan database for stream server! %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Error trying to scan database for data!"))
+			return
+		}
+
+		filename := strings.Split(r.URL.Path, "/")
+		path := fmt.Sprintf("%s/%s/%s/%s", os.Getenv("FS_PATH"), sid, room, filename[len(filename)-1])
+
+		for _, cfile := range cache {
+			if cfile.path == path {
+				w.WriteHeader(http.StatusOK)
+				w.Write(*cfile.data)
+				return
+			}
+		}
+
+		for {
+			file, err := os.Open(path)
+
+			if err != nil {
+				logger.Printf("Error opening file to serve stream! %s\n", err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("Could not open file!"))
+				return
+			}
+
+			err = insertCache(path, io.TeeReader(file, w)) // Tries to read from file to both cache and http response. May have issues with latency while writing
+
+			if err == nil {
+				w.WriteHeader(http.StatusOK)
+				file.Close()
+				break
+			}
+
+			logger.Printf("Error trying to read file to insert into cache! %s\n", err.Error())
+			file.Close()
+		}
 	case "A":
-		fmt.Printf("About to serve %s/%s\n", os.Getenv("FS_PATH"), sid)
-		http.StripPrefix(fmt.Sprintf("%s/%s", sid, session), http.FileServer(http.Dir(fmt.Sprintf("%s/%s", os.Getenv("FS_PATH"), sid)))).ServeHTTP(w, r)
+		filename := strings.Split(r.URL.Path, "/")
+		path := fmt.Sprintf("%s/%s/%s/%s", os.Getenv("FS_PATH"), sid, filename[len(filename)-2], filename[len(filename)-1])
+
+		for _, cfile := range cache {
+			if cfile.path == path {
+				w.WriteHeader(http.StatusOK)
+				w.Write(*cfile.data)
+				return
+			}
+		}
+
+		for {
+			file, err := os.Open(path)
+
+			if err != nil {
+				logger.Printf("Error opening file to serve stream! %s\n", err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("Could not open file!"))
+				return
+			}
+
+			err = insertCache(path, io.TeeReader(file, w)) // Tries to read from file to both cache and http response. May have issues with latency while writing
+
+			if err == nil {
+				w.WriteHeader(http.StatusOK)
+				file.Close()
+				break
+			}
+
+			logger.Printf("Error trying to read file to insert into cache! %s\n", err.Error())
+			file.Close()
+		}
 	}
 }
 
