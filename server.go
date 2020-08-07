@@ -109,7 +109,7 @@ func manageCameras() {
 	for {
 		wait := time.After(5 * time.Second)
 
-		rows, err := db.Query("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime<unix_timestamp() AND periods.etime>unix_timestamp()) AND cameras.lastStreamed<unix_timestamp()-60 AND cameras.locked=1;")
+		rows, err := db.Query("SELECT schools.address, cameras.id, cameras.address FROM cameras INNER JOIN classes ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE (periods.stime<unix_timestamp()-60 AND periods.etime>unix_timestamp()) AND cameras.lastStreamed<unix_timestamp()-60 AND cameras.locked=1;")
 
 		if err != nil {
 			logger.Printf("Error trying to query database to automatically start cameras! %s\n", err.Error())
