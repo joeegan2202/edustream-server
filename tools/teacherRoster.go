@@ -24,6 +24,9 @@ func teacherRoster() {
 	var password string
 	fmt.Print("Enter the password: ")
 	fmt.Scanln(&password)
+	var port string
+	fmt.Print("Enter the port: ")
+	fmt.Scanln(&port)
 	var sid string
 	fmt.Print("Enter the school id: ")
 	fmt.Scanln(&sid)
@@ -34,7 +37,7 @@ func teacherRoster() {
 		log.Fatalf("Error opening file for reading! %s\n", err.Error())
 	}
 
-	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:3306)/edustream", username, password, hostname))
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s:%s)/edustream", username, password, hostname, port))
 
 	if err != nil {
 		log.Fatalf("Error trying to open database! %s\n", err.Error())
