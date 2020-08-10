@@ -6,4 +6,4 @@ docker build -t edustream-server .
 docker run --publish 80:80 --detach -it \
     -v /mnt/nfs:/nfs \
     --restart always \
-    --rm --name run-edustream-server edustream-server
+    --name run-edustream-server edustream-server
