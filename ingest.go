@@ -131,6 +131,8 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		} else {
 			logger.Printf("Error querying for if class is recording! %s\n", err.Error())
 		}
+
+		rows.Close()
 	}
 
 	io.Copy(file, io.MultiReader(bytes.NewReader(signData[:bytesRead]), r.Body))
