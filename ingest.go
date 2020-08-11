@@ -121,9 +121,6 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Printf("Error trying to get class id! %s\n", err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error trying to get the class id!")
-		return
 	}
 
 	rows, err = db.Query("SELECT * FROM recording WHERE cid=? AND status=0;", classID)
