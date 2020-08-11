@@ -122,7 +122,7 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Printf("Error trying to get class id! %s\n", err.Error())
 	} else {
-		rows, err = db.Query("SELECT * FROM recording WHERE cid=? AND status=0;", classID)
+		rows, err = db.Query("SELECT * FROM recording WHERE cid=?;", classID)
 
 		if err == nil {
 			if !rows.Next() {
