@@ -121,16 +121,16 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Printf("Error trying to get class id! %s\n", err.Error())
-	}
-
-	rows, err = db.Query("SELECT * FROM recording WHERE cid=? AND status=0;", classID)
-
-	if err == nil {
-		if !rows.Next() {
-			db.Exec("INSERT INTO recording ( sid, cid, time, status ) VALUES ( ?, ?, unix_timestamp(), 0 );", sid, classID)
-		}
 	} else {
-		logger.Printf("Error querying for if class is recording! %s\n", err.Error())
+		rows, err = db.Query("SELECT * FROM recording WHERE cid=? AND status=0;", classID)
+
+		if err == nil {
+			if !rows.Next() {
+				db.Exec("INSERT INTO recording ( sid, cid, time, status ) VALUES ( ?, ?, unix_timestamp(), 0 );", sid, classID)
+			}
+		} else {
+			logger.Printf("Error querying for if class is recording! %s\n", err.Error())
+		}
 	}
 
 	io.Copy(file, io.MultiReader(bytes.NewReader(signData[:bytesRead]), r.Body))
