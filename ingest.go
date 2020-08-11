@@ -98,7 +98,6 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dir := fmt.Sprintf("%s/%s/%s", os.Getenv("FS_PATH"), sid, room)
 
 	os.MkdirAll(dir, 0755)
-	//err = os.Remove(fmt.Sprintf("%s/%s", dir, filename))
 	if err != nil {
 		logger.Printf("Error trying to remove file ingesting! %s\n", err.Error())
 	}
@@ -117,7 +116,25 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Could not update camera record with streaming time!")
 	}
 
-	//rows, err = db.Query("SELECT * FROM recording WHERE cid=(SELECT classes.id FROM classes INNER JOIN cameras ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND schools.id=? AND cameras.id=?) ;", sid, cid)
+	var classID string
+	err = db.QueryRow("SELECT classes.id FROM classes INNER JOIN cameras ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND schools.id=? AND cameras.id=?;", sid, cid).Scan(&classID)
+
+	if err != nil {
+		logger.Printf("Error trying to get class id! %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error trying to get the class id!")
+		return
+	}
+
+	rows, err = db.Query("SELECT * FROM recording WHERE cid=? AND status=0;", classID)
+
+	if err == nil {
+		if !rows.Next() {
+			db.Exec("INSERT INTO recording ( sid, cid, time, status ) VALUES ( ?, ?, unix_timestamp(), 0 );", sid, classID)
+		}
+	} else {
+		logger.Printf("Error querying for if class is recording! %s\n", err.Error())
+	}
 
 	io.Copy(file, io.MultiReader(bytes.NewReader(signData[:bytesRead]), r.Body))
 }
