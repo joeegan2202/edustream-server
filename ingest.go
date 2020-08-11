@@ -126,7 +126,7 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if err == nil {
 			if !rows.Next() {
-				db.Exec("INSERT INTO recording ( sid, cid, time, status ) VALUES ( ?, ?, unix_timestamp(), 0 );", sid, classID)
+				db.Exec("INSERT INTO recording ( sid, cid, time, room, status ) VALUES ( ?, ?, unix_timestamp(), ?, 0 );", sid, classID, room)
 			}
 		} else {
 			logger.Printf("Error querying for if class is recording! %s\n", err.Error())
