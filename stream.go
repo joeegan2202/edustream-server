@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/minio/minio-go/v7"
 )
 
 // StreamServer Type for the server streaming files
@@ -143,6 +146,154 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			logger.Printf("Error trying to read file to insert into cache! %s\n", err.Error())
 			file.Close()
 		}
+	}
+}
+
+// RecordServer Type for the server streaming the recorded files
+type RecordServer struct{}
+
+func (s *RecordServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Cache-Control", "no-cache")
+
+	sid := strings.Split(r.URL.Path, "/")[0]
+	session := strings.Split(r.URL.Path, "/")[1]
+	rid := strings.Split(r.URL.Path, "/")[2]
+
+	role, err := checkSession(sid, session)
+
+	if err != nil {
+		logger.Printf("Error checking sessions! %s\n", err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Error checking session!"))
+		return
+	}
+
+	_, err = db.Exec("UPDATE sessions SET time=unix_timestamp() WHERE id=? AND sid=?;", session, sid)
+
+	if err != nil {
+		logger.Printf("Error in RecordServer trying to update session time! Error: %s\n", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(fmt.Sprintf(`{"status": false, "err": "Error trying to update session time!"}`)))
+		return
+	}
+
+	switch role {
+	case "S", "T":
+		rows, err := db.Query(`SELECT recording.cid, recording.time FROM recording
+		INNER JOIN classes ON classes.id=recording.cid
+		INNER JOIN roster ON roster.cid=classes.id
+		INNER JOIN people ON roster.pid=people.id
+		INNER JOIN sessions ON people.uname=sessions.uname
+		WHERE recording.id=? AND sessions.sid=? AND sessions.id=?;`, rid, sid, session)
+
+		if err != nil {
+			logger.Printf("Error querying sessions to stream! %s\n", err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Error querying session to stream file!"))
+			return
+		}
+
+		defer rows.Close()
+
+		if !rows.Next() {
+			logger.Printf("No recording found for id: %s\n", rid)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"status": false, "err": "No recording found!"}`))
+			return
+		}
+
+		var (
+			cid   string
+			stime uint64
+		)
+
+		err = rows.Scan(&cid, &stime)
+
+		if err != nil {
+			logger.Printf("Error trying to scan database for record server! %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Error trying to scan database for data!"))
+			return
+		}
+
+		recordTime := time.Unix(int64(stime), 0)
+
+		filename := strings.Split(r.URL.Path, "/")
+		path := fmt.Sprintf("%s/%s/%s-%d-%d/%s", sid, cid, recordTime.Month().String(), recordTime.Day(), recordTime.Year(), filename[len(filename)-1])
+
+		object, err := minioClient.GetObject(context.Background(), "edustream-record", path, minio.GetObjectOptions{})
+
+		if err != nil {
+			logger.Printf("Error getting file from Spaces to serve stream! %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Could not open file!"))
+			return
+		}
+
+		_, err = io.Copy(w, object)
+
+		if err == nil {
+			w.WriteHeader(http.StatusOK)
+			break
+		}
+
+		logger.Printf("Error trying to read file! %s\n", err.Error())
+	case "A":
+		rows, err := db.Query(`SELECT cid, time FROM recording WHERE id=? AND sid=?;`, rid, sid)
+
+		if err != nil {
+			logger.Printf("Error querying sessions to stream! %s\n", err.Error())
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Error querying session to stream file!"))
+			return
+		}
+
+		defer rows.Close()
+
+		if !rows.Next() {
+			logger.Printf("No recording found for id: %s\n", rid)
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"status": false, "err": "No recording found!"}`))
+			return
+		}
+
+		var (
+			cid   string
+			stime uint64
+		)
+
+		err = rows.Scan(&cid, &stime)
+
+		if err != nil {
+			logger.Printf("Error trying to scan database for record server! %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Error trying to scan database for data!"))
+			return
+		}
+
+		recordTime := time.Unix(int64(stime), 0)
+
+		filename := strings.Split(r.URL.Path, "/")
+		path := fmt.Sprintf("%s/%s/%s-%d-%d/%s", sid, cid, recordTime.Month().String(), recordTime.Day(), recordTime.Year(), filename[len(filename)-1])
+
+		object, err := minioClient.GetObject(context.Background(), "edustream-record", path, minio.GetObjectOptions{})
+
+		if err != nil {
+			logger.Printf("Error getting file from Spaces to serve stream! %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Could not open file!"))
+			return
+		}
+
+		_, err = io.Copy(w, object)
+
+		if err == nil {
+			w.WriteHeader(http.StatusOK)
+			break
+		}
+
+		logger.Printf("Error trying to read file! %s\n", err.Error())
 	}
 }
 

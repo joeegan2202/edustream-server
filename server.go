@@ -10,9 +10,12 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 var logger *log.Logger
+var minioClient *minio.Client
 
 func main() {
 	f, err := os.OpenFile(fmt.Sprintf("logfile-%s.txt", time.Now().Format(time.RFC3339)), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -26,6 +29,18 @@ func main() {
 	db = loadDatabase()
 
 	createTables()
+
+	spacesAcc := os.Getenv("SPACES_ACC")
+	spacesSec := os.Getenv("SPACES_SEC")
+
+	minioClient, err = minio.New("nyc3.digitaloceanspaces.com", &minio.Options{
+		Creds:  credentials.NewStaticV4(spacesAcc, spacesSec, ""),
+		Secure: true,
+	})
+
+	if err != nil {
+		log.Fatalf("Error trying to start minio s3 client! %s\n", err.Error())
+	}
 
 	go manageCameras()
 	go manageCache()

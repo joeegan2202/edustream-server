@@ -117,16 +117,17 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var classID string
-	err = db.QueryRow("SELECT classes.id FROM classes INNER JOIN cameras ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND schools.id=? AND cameras.id=?;", sid, cid).Scan(&classID)
+	var period string
+	err = db.QueryRow("SELECT classes.id, periods.code FROM classes INNER JOIN cameras ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND schools.id=? AND cameras.id=?;", sid, cid).Scan(&classID, &period)
 
 	if err != nil {
 		logger.Printf("Error trying to get class id! %s\n", err.Error())
 	} else {
-		rows, err = db.Query("SELECT * FROM recording WHERE cid=?;", classID)
+		rows, err = db.Query("SELECT * FROM recording WHERE cid=? AND status!=2;", classID)
 
 		if err == nil {
 			if !rows.Next() {
-				db.Exec("INSERT INTO recording ( sid, cid, time, room, status ) VALUES ( ?, ?, unix_timestamp(), ?, 0 );", sid, classID, room)
+				db.Exec("INSERT INTO recording ( sid, cid, time, room, period, status ) VALUES ( ?, ?, unix_timestamp(), ?, ?, 0 );", sid, classID, room, period)
 			}
 		} else {
 			logger.Printf("Error querying for if class is recording! %s\n", err.Error())
