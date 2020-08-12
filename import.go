@@ -316,10 +316,6 @@ func adminImportRoster(w http.ResponseWriter, r *http.Request) {
 
 				if err != nil {
 					logger.Printf("Error trying to insert rows while importing roster! pid: %s, cid: %s; %s\n", record[indices[0]], record[indices[1]], err.Error())
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(`{"status": false, "err": "Error trying to import roster!"}`))
-					rows.Close()
-					return
 				}
 			}
 		}
