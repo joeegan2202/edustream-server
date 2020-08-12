@@ -94,6 +94,7 @@ func main() {
 	r.HandleFunc("/info/", streamInfo)
 	r.HandleFunc("/check/", handleCheck)
 	r.PathPrefix("/stream/").Handler(http.StripPrefix("/stream/", new(StreamServer))) // The actual file server for streams
+	r.PathPrefix("/record/").Handler(http.StripPrefix("/record/", new(RecordServer))) // The actual file server for streams
 	r.PathPrefix("/ingest/").Handler(http.StripPrefix("/ingest/", new(IngestServer))) // The actual file server for streams
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
