@@ -404,12 +404,7 @@ func adminImportAuth(w http.ResponseWriter, r *http.Request) {
 
 		defer rows.Close()
 
-		hash := sha256.New()
-		fmt.Fprint(hash, record[indices[0]])
-		inter := hash.Sum(nil)
-		hash.Reset()
-		hash.Write(inter)
-		password := hash.Sum(nil)
+		password := sha256.Sum256([]byte(fmt.Sprintf("%x", sha256.Sum256([]byte(record[indices[1]])))))
 
 		if rows.Next() {
 			_, err := db.Exec("UPDATE auth SET password=? WHERE sid=? AND id=?;", password, sid, record[indices[3]])
