@@ -327,6 +327,115 @@ func adminImportRoster(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"status": true, "err": ""}`))
 }
 
+func adminImportAuth(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "OPTIONS" {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "PUT")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+
+	query := r.URL.Query()
+
+	if query["session"] == nil || query["sid"] == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Incorrect parameters given!"}`))
+		return
+	}
+
+	var (
+		session string
+		sid     string
+	)
+
+	session = query["session"][0]
+	sid = query["sid"][0]
+
+	if role, err := checkSession(sid, session); role != "A" {
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "Error while checking session!"}`))
+			return
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"status": false, "err": "Incorrect role"}`))
+		return
+	}
+
+	dataSheet := csv.NewReader(r.Body)
+	dataSheet.Comment = '#'
+
+	// Get headers from csv
+	indices := make([]int, 2)
+	values, err := dataSheet.Read()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"status": false, "err": "Could not read header line from csv"}`))
+		return
+	}
+
+	for i, value := range values {
+		switch value {
+		case "pid":
+			indices[0] = i
+		case "password":
+			indices[1] = i
+		}
+	}
+
+	// Write rest of data to db
+	for {
+		record, err := dataSheet.Read()
+		if err != nil {
+			break
+		}
+
+		rows, err := db.Query("SELECT * FROM auth WHERE sid=? AND pid=?;", sid, record[indices[0]])
+
+		if err != nil {
+			logger.Printf("Error while trying to query database for import! %s\n", err.Error())
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(`{"status": false, "err": "Error trying to query database with records!"}`))
+			return
+		}
+
+		defer rows.Close()
+
+		hash := sha256.New()
+		fmt.Fprint(hash, record[indices[0]])
+		inter := hash.Sum(nil)
+		hash.Reset()
+		hash.Write(inter)
+		password := hash.Sum(nil)
+
+		if rows.Next() {
+			_, err := db.Exec("UPDATE auth SET password=? WHERE sid=? AND id=?;", password, sid, record[indices[3]])
+
+			if err != nil {
+				logger.Printf("Error while trying to update database for import! %s\n", err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(`{"status": false, "err": "Error trying to update database with records!"}`))
+				return
+			}
+		} else {
+			_, err = db.Exec("INSERT INTO auth VALUES ( ?, ?, ? );", sid, record[indices[0]], password)
+
+			if err != nil {
+				logger.Printf("Error trying to insert rows while importing auth! %s\n", err.Error())
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(`{"status": false, "err": "Error trying to import auth!"}`))
+				return
+			}
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": true, "err": ""}`))
+}
+
 func adminImportPeriods(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
