@@ -421,7 +421,7 @@ func adminImportAuth(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else {
-			_, err = db.Exec("INSERT INTO auth VALUES ( ?, ?, ? );", sid, record[indices[0]], password)
+			_, err = db.Exec("INSERT INTO auth VALUES ( ?, ?, ? );", sid, record[indices[0]], fmt.Sprintf("%x", password))
 
 			if err != nil {
 				logger.Printf("Error trying to insert rows while importing auth! %s\n", err.Error())
