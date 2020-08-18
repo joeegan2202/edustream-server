@@ -118,7 +118,7 @@ func (i *IngestServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	var classID string
 	var period string
-	err = db.QueryRow("SELECT classes.id, periods.code FROM classes INNER JOIN cameras ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<unix_timestamp() AND periods.etime>unix_timestamp() AND schools.id=? AND cameras.id=?;", sid, cid).Scan(&classID, &period)
+	err = db.QueryRow("SELECT classes.id, periods.code FROM classes INNER JOIN cameras ON cameras.room=classes.room INNER JOIN periods ON periods.code=classes.period INNER JOIN schools ON schools.id=cameras.sid WHERE periods.stime<unix_timestamp()+60 AND periods.etime>unix_timestamp() AND schools.id=? AND cameras.id=?;", sid, cid).Scan(&classID, &period)
 
 	if err != nil {
 		logger.Printf("Error trying to get class id! %s\n", err.Error())
