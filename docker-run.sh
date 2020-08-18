@@ -1,5 +1,5 @@
-apt update
-apt install nfs-common
+apt update -y
+apt install -y nfs-common docker.io
 mkdir -p /mnt/nfs
 mount -o noac 10.116.0.8:/mnt/volume_nyc1_01 /mnt/nfs
 docker build -t edustream-server .
