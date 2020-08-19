@@ -84,13 +84,13 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		filename := strings.Split(r.URL.Path, "/")
 		path := fmt.Sprintf("%s/%s/%s/%s", os.Getenv("FS_PATH"), sid, room, filename[len(filename)-1])
 
-		for _, cfile := range cache {
-			if cfile.path == path {
-				w.WriteHeader(http.StatusOK)
-				w.Write(*cfile.data)
-				return
-			}
-		}
+		//for _, cfile := range cache {
+		//	if cfile.path == path {
+		//		w.WriteHeader(http.StatusOK)
+		//		w.Write(*cfile.data)
+		//		return
+		//	}
+		//}
 
 		for {
 			file, err := os.Open(path)
@@ -102,7 +102,8 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			err = insertCache(path, io.TeeReader(file, w)) // Tries to read from file to both cache and http response. May have issues with latency while writing
+			//err = insertCache(path, io.TeeReader(file, w)) // Tries to read from file to both cache and http response. May have issues with latency while writing
+			io.Copy(w, file)
 
 			if err == nil {
 				w.WriteHeader(http.StatusOK)
@@ -117,13 +118,13 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		filename := strings.Split(r.URL.Path, "/")
 		path := fmt.Sprintf("%s/%s/%s/%s", os.Getenv("FS_PATH"), sid, filename[len(filename)-2], filename[len(filename)-1])
 
-		for _, cfile := range cache {
-			if cfile.path == path {
-				w.WriteHeader(http.StatusOK)
-				w.Write(*cfile.data)
-				return
-			}
-		}
+		//for _, cfile := range cache {
+		//	if cfile.path == path {
+		//		w.WriteHeader(http.StatusOK)
+		//		w.Write(*cfile.data)
+		//		return
+		//	}
+		//}
 
 		for {
 			file, err := os.Open(path)
@@ -135,7 +136,8 @@ func (s *StreamServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			err = insertCache(path, io.TeeReader(file, w)) // Tries to read from file to both cache and http response. May have issues with latency while writing
+			//err = insertCache(path, io.TeeReader(file, w)) // Tries to read from file to both cache and http response. May have issues with latency while writing
+			io.Copy(w, file)
 
 			if err == nil {
 				w.WriteHeader(http.StatusOK)
