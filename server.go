@@ -117,11 +117,7 @@ func main() {
 		w.Write([]byte("Status check passed"))
 	})
 
-	server := http.Server{
-		Addr:    ":80",
-		Handler: r,
-	}
-	logger.Fatal(server.ListenAndServe().Error())
+	logger.Fatal(http.ListenAndServeTLS(":443", "public.crt", "private.key", r).Error())
 }
 
 func getSchools(w http.ResponseWriter, r *http.Request) {
