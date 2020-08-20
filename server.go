@@ -30,6 +30,21 @@ func main() {
 
 	createTables()
 
+	client := &http.Client{}
+	response, err := client.Get(fmt.Sprintf("https://api.edustream.live/announce/?url=%s", os.Getenv("URL")))
+
+	if err != nil {
+		logger.Fatalf("Could not announce server to balancer! %s", err.Error())
+	}
+
+	bodyData, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		logger.Fatalf("Could not read response from server while announcing! %s", err.Error())
+	}
+
+	logger.Printf("Response while announcing: Status: %d, Body: %s", response.StatusCode, string(bodyData))
+
 	spacesAcc := os.Getenv("SPACES_ACC")
 	spacesSec := os.Getenv("SPACES_SEC")
 
