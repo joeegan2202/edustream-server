@@ -31,7 +31,14 @@ func main() {
 	createTables()
 
 	client := &http.Client{}
-	response, err := client.Get(fmt.Sprintf("https://devapi.edustream.live/announce/?url=%s", os.Getenv("URL")))
+
+	request, err := http.NewRequest("POST", fmt.Sprintf("https://devapi.edustream.live/announce/?url=%s", os.Getenv("URL")), strings.NewReader("edustream-diplomat-server"))
+
+	if err != nil {
+		logger.Fatalf("Could not make request to announce server to balancer! %s\n", err.Error())
+	}
+
+	response, err := client.Do(request)
 
 	if err != nil {
 		logger.Fatalf("Could not announce server to balancer! %s", err.Error())
