@@ -6,6 +6,6 @@ COPY . .
 
 RUN go install -v ./...
 
-EXPOSE 80
+EXPOSE 443
 
 CMD ["edustream-server"]
