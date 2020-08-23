@@ -32,7 +32,7 @@ func main() {
 
 	client := &http.Client{}
 
-	request, err := http.NewRequest("POST", fmt.Sprintf("https://devapi.edustream.live/announce/?url=%s", os.Getenv("URL")), strings.NewReader("edustream-diplomat-server"))
+	request, err := http.NewRequest("POST", fmt.Sprintf("https://api.edustream.live/announce/?url=%s", os.Getenv("URL")), strings.NewReader("edustream-diplomat-server"))
 
 	if err != nil {
 		logger.Fatalf("Could not make request to announce server to balancer! %s\n", err.Error())
