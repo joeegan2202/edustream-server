@@ -30,27 +30,35 @@ func main() {
 
 	createTables()
 
-	client := &http.Client{}
+	go (func() {
+		client := &http.Client{}
 
-	request, err := http.NewRequest("POST", fmt.Sprintf("https://api.edustream.live/announce/?url=%s", os.Getenv("URL")), strings.NewReader("edustream-diplomat-server"))
+		request, err := http.NewRequest("POST", fmt.Sprintf("https://api.edustream.live/announce/?url=%s", os.Getenv("URL")), strings.NewReader("edustream-diplomat-server"))
 
-	if err != nil {
-		logger.Fatalf("Could not make request to announce server to balancer! %s\n", err.Error())
-	}
+		if err != nil {
+			logger.Fatalf("Could not make request to announce server to balancer! %s\n", err.Error())
+		}
 
-	response, err := client.Do(request)
+		for {
+			timer := time.After(5 * time.Second)
 
-	if err != nil {
-		logger.Fatalf("Could not announce server to balancer! %s", err.Error())
-	}
+			response, err := client.Do(request)
 
-	bodyData, err := ioutil.ReadAll(response.Body)
+			if err != nil {
+				logger.Fatalf("Could not announce server to balancer! %s", err.Error())
+			}
 
-	if err != nil {
-		logger.Fatalf("Could not read response from server while announcing! %s", err.Error())
-	}
+			bodyData, err := ioutil.ReadAll(response.Body)
 
-	logger.Printf("Response while announcing: Status: %d, Body: %s", response.StatusCode, string(bodyData))
+			if err != nil {
+				logger.Fatalf("Could not read response from server while announcing! %s", err.Error())
+			}
+
+			logger.Printf("Response while announcing: Status: %d, Body: %s", response.StatusCode, string(bodyData))
+
+			<-timer
+		}
+	})()
 
 	spacesAcc := os.Getenv("SPACES_ACC")
 	spacesSec := os.Getenv("SPACES_SEC")
