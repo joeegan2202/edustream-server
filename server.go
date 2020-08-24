@@ -33,14 +33,14 @@ func main() {
 	go (func() {
 		client := &http.Client{}
 
-		request, err := http.NewRequest("POST", fmt.Sprintf("https://api.edustream.live/announce/?url=%s", os.Getenv("URL")), strings.NewReader("edustream-diplomat-server"))
-
-		if err != nil {
-			logger.Fatalf("Could not make request to announce server to balancer! %s\n", err.Error())
-		}
-
 		for {
 			timer := time.After(5 * time.Second)
+
+			request, err := http.NewRequest("POST", fmt.Sprintf("https://api.edustream.live/announce/?url=%s", os.Getenv("URL")), strings.NewReader("edustream-diplomat-server"))
+
+			if err != nil {
+				logger.Fatalf("Could not make request to announce server to balancer! %s\n", err.Error())
+			}
 
 			response, err := client.Do(request)
 
